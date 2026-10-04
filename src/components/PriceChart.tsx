@@ -17,6 +17,7 @@ export function PriceChart({ candles, analysis }: { candles: Candle[]; analysis:
       const chart = LW.createChart(el, {
         width: el.clientWidth,
         height: el.clientHeight,
+        localization: { locale: "en-US" },
         layout: { background: { color: T.bg }, textColor: T.text, fontFamily: "JetBrains Mono, monospace", fontSize: 11 },
         grid: { vertLines: { color: T.grid }, horzLines: { color: T.grid } },
         crosshair: { mode: LW.CrosshairMode.Normal },
