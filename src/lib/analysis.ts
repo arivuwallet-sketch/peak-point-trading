@@ -155,6 +155,7 @@ export type Analysis = {
   indicators: { rsi: number; macdHist: number; adx: number; ema20: number; ema50: number; ema200: number; bbUp: number; bbLo: number };
   series: { ema20: number[]; ema50: number[]; ema200: number[] };
   markers: { time: number; position: "aboveBar" | "belowBar"; text: string; bias: Bias }[];
+  zones: Zone[];
 };
 
 export function trendBias(cs: Candle[]): Bias {
@@ -392,6 +393,7 @@ export function analyze(cs: Candle[], htfBias: Bias | null): Analysis {
     indicators: { rsi: R, macdHist: h, adx: adxNow, ema20: e20[n], ema50: e50[n], ema200: e200[n], bbUp: bb.up[n], bbLo: bb.lo[n] },
     series: { ema20: e20, ema50: e50, ema200: e200 },
     markers,
+    zones: zones.filter((z) => Math.abs((z.top + z.bottom) / 2 - price) < 6 * A).sort((x, y) => y.i - x.i).slice(0, 8),
   };
 }
 
