@@ -1,4 +1,5 @@
 import type { Candle } from "./market.functions";
+import { fairValueGaps, orderBlocks, supplyDemand, liquiditySweeps, orderFlow, inZone, type Zone } from "./smc";
 
 /* ---------------- Indicators ---------------- */
 export function ema(v: number[], p: number): number[] {
@@ -154,6 +155,7 @@ export type Analysis = {
   indicators: { rsi: number; macdHist: number; adx: number; ema20: number; ema50: number; ema200: number; bbUp: number; bbLo: number };
   series: { ema20: number[]; ema50: number[]; ema200: number[] };
   markers: { time: number; position: "aboveBar" | "belowBar"; text: string; bias: Bias }[];
+  zones: Zone[];
 };
 
 export function trendBias(cs: Candle[]): Bias {
@@ -282,6 +284,41 @@ export function analyze(cs: Candle[], htfBias: Bias | null): Analysis {
   const gzLo = Math.min(golden.price, half.price), gzHi = Math.max(golden.price, half.price);
   if (price >= gzLo - A * 0.2 && price <= gzHi + A * 0.2) add("Fibonacci", "Golden pocket", `Price sits in the 0.5–0.618 retracement (${fmt(gzLo)}–${fmt(gzHi)}) of the ${upLeg ? "up" : "down"}-leg.`, upLeg ? "bull" : "bear", 1);
 
+  // --- Smart money concepts
+  const fvgs = fairValueGaps(cs, A);
+  const obs = orderBlocks(cs, pv, A);
+  const sd = supplyDemand(cs, A);
+  const zones: Zone[] = [...fvgs, ...obs, ...sd];
+  const pad = A * 0.15;
+  const zoneName: Record<Zone["kind"], string> = { FVG: "Fair value gap", IFVG: "Inverse FVG", OB: "Order block", BREAKER: "Breaker block", DEMAND: "Demand zone", SUPPLY: "Supply zone" };
+  const zoneW: Record<Zone["kind"], number> = { FVG: 1, IFVG: 1.25, OB: 1.5, BREAKER: 1.5, DEMAND: 1.25, SUPPLY: 1.25 };
+  const seen = new Set<string>();
+  for (const z of [...zones].sort((x, y) => y.i - x.i)) {
+    if (!inZone(price, z, pad) || seen.has(z.kind)) continue;
+    seen.add(z.kind);
+    const why = z.kind === "IFVG" ? `a ${z.bias === "bull" ? "bearish" : "bullish"} gap that price closed through, now flipped to ${z.bias === "bull" ? "support" : "resistance"}`
+      : z.kind === "BREAKER" ? `a failed ${z.bias === "bull" ? "bearish" : "bullish"} order block, now acting as ${z.bias === "bull" ? "support" : "resistance"}`
+      : z.kind === "OB" ? `the last opposite candle before a structure-breaking displacement — institutional ${z.bias === "bull" ? "buy" : "sell"} orders likely rest here`
+      : z.kind === "FVG" ? `an unfilled ${z.bias === "bull" ? "bullish" : "bearish"} imbalance price tends to react from`
+      : `a base before a strong ${z.bias === "bull" ? "rally" : "drop"} — unfilled ${z.bias === "bull" ? "buy" : "sell"} orders`;
+    add("Smart money", `Inside ${zoneName[z.kind]}`, `Price is in ${zoneName[z.kind].toLowerCase()} ${fmt(z.bottom)}–${fmt(z.top)}: ${why}.`, z.bias, zoneW[z.kind]);
+  }
+  const sweeps = liquiditySweeps(cs, pv);
+  const lastSweep = sweeps[sweeps.length - 1];
+  if (lastSweep && n - lastSweep.i <= 5) {
+    add("Liquidity", `${lastSweep.bias === "bull" ? "Sell-side" : "Buy-side"} liquidity sweep`, `${n - lastSweep.i === 0 ? "Last candle" : `${n - lastSweep.i} bars ago price`} wicked ${lastSweep.bias === "bull" ? "below" : "above"} the swing ${lastSweep.bias === "bull" ? "low" : "high"} ${fmt(lastSweep.level)} and closed back inside — stops were taken, a reversal ${lastSweep.bias === "bull" ? "up" : "down"} is favoured.`, lastSweep.bias, 1.75);
+  }
+  for (const s of sweeps.slice(-4)) markers.push({ time: s.time, position: s.bias === "bull" ? "belowBar" : "aboveBar", text: "Sweep", bias: s.bias });
+  const of = orderFlow(cs);
+  if (of.available && n > 25) {
+    const cvdChg = of.cvd[n] - of.cvd[n - 20];
+    const pxChg = c[n] - c[n - 20];
+    const d5 = of.delta.slice(-5).reduce((s, x) => s + x, 0);
+    if (pxChg > 0 && cvdChg < 0) add("Order flow", "CVD divergence", "Price rose over 20 bars while cumulative volume delta fell — rally lacks aggressive buyers (absorption).", "bear", 1.25);
+    else if (pxChg < 0 && cvdChg > 0) add("Order flow", "CVD divergence", "Price fell over 20 bars while cumulative volume delta rose — sellers are being absorbed.", "bull", 1.25);
+    else add("Order flow", "Delta confirmation", `Cumulative delta ${cvdChg > 0 ? "rising" : "falling"} with price; last 5 bars net ${d5 > 0 ? "buying" : "selling"} pressure.`, cvdChg > 0 ? "bull" : "bear", 0.75);
+  }
+
   // --- Score
   const score = factors.reduce((s, f) => s + (f.bias === "bull" ? f.weight : f.bias === "bear" ? -f.weight : 0), 0);
   const total = factors.reduce((s, f) => s + f.weight, 0) || 1;
@@ -356,6 +393,7 @@ export function analyze(cs: Candle[], htfBias: Bias | null): Analysis {
     indicators: { rsi: R, macdHist: h, adx: adxNow, ema20: e20[n], ema50: e50[n], ema200: e200[n], bbUp: bb.up[n], bbLo: bb.lo[n] },
     series: { ema20: e20, ema50: e50, ema200: e200 },
     markers,
+    zones: zones.filter((z) => Math.abs((z.top + z.bottom) / 2 - price) < 6 * A).sort((x, y) => y.i - x.i).slice(0, 8),
   };
 }
 

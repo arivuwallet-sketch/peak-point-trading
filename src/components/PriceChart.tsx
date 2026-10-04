@@ -40,6 +40,12 @@ export function PriceChart({ candles, analysis }: { candles: Candle[]; analysis:
 
       for (const lv of analysis.levels)
         s.createPriceLine({ price: lv.price, color: T.level, lineWidth: 1, lineStyle: LW.LineStyle.Dotted, axisLabelVisible: false, title: lv.kind === "support" ? "S" : "R" });
+      for (const z of analysis.zones) {
+        const col = z.bias === "bull" ? T.up : T.down;
+        const t = z.kind === "BREAKER" ? "BB" : z.kind === "DEMAND" ? "DZ" : z.kind === "SUPPLY" ? "SZ" : z.kind;
+        s.createPriceLine({ price: z.top, color: col, lineWidth: 1, lineStyle: LW.LineStyle.LargeDashed, axisLabelVisible: false, title: t });
+        s.createPriceLine({ price: z.bottom, color: col, lineWidth: 1, lineStyle: LW.LineStyle.LargeDashed, axisLabelVisible: false, title: "" });
+      }
       const p = analysis.plan;
       const pl = (price: number, color: string, title: string, style = LW.LineStyle.Solid) =>
         s.createPriceLine({ price, color, lineWidth: 2, lineStyle: style, axisLabelVisible: true, title });
