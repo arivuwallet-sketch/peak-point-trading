@@ -304,7 +304,7 @@ export function analyze(cs: Candle[], htfBias: Bias | null): Analysis {
     : Math.max(...highs.filter((l) => l.price > entry).slice(-1).map((l) => l.price), nr && nr.price > entry ? nr.price : -Infinity);
   let stop = Number.isFinite(structStop) ? structStop - dir * 0.5 * A : entry - dir * 1.5 * A;
   let stopReason = Number.isFinite(structStop)
-    ? `Placed ${fmt(Math.abs(entry - stop))} beyond the protective swing ${long ? "low" : "high"} at ${fmt(structStop)} plus a 0.5 ATR buffer to avoid liquidity sweeps.`
+    ? `Anchored to the protective swing ${long ? "low" : "high"} at ${fmt(structStop)} plus a 0.5 ATR buffer to avoid liquidity sweeps.`
     : "No protective swing nearby — volatility stop at 1.5 ATR.";
   const dist = Math.abs(entry - stop);
   if (dist < A) { stop = entry - dir * A; stopReason += " Widened to the 1 ATR minimum so normal noise doesn't stop the trade out."; }
