@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- Numeric indicator code relies on index access; tsconfig has noUncheckedIndexedAccess off — why: per-index guards across indicator math add noise without safety benefit.
+- Market data comes from a server function proxying Yahoo Finance chart API; analysis runs client-side in src/lib/analysis.ts — why: one keyless source covers all asset classes and analysis stays deterministic.
