@@ -12,5 +12,6 @@ export const chartTheme = {
   stop: "#ef4444",
   tp: "#22c55e",
   trail: "#38bdf8",
+  info: "#38bdf8",
   level: "#4b5563",
 };

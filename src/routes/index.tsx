@@ -6,15 +6,25 @@ import { getCandles, TIMEFRAMES, type Timeframe } from "@/lib/market.functions";
 import { analyze, fmtPrice, trendBias, type Bias } from "@/lib/analysis";
 import { cn } from "@/lib/utils";
 
-const PriceChart = lazy(() => import("@/components/PriceChart").then((m) => ({ default: m.PriceChart })));
+const PriceChart = lazy(() =>
+  import("@/components/PriceChart").then((m) => ({ default: m.PriceChart })),
+);
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "ChartSage — Live Pro Chart Reader for Stocks, Forex, Crypto & Commodities" },
-      { name: "description", content: "Live confluence analysis: market structure, S/R, momentum, divergence, Fibonacci and multi-timeframe trend with entry, stop loss, take profit and trailing exit." },
+      {
+        name: "description",
+        content:
+          "Live confluence analysis: market structure, S/R, momentum, divergence, Fibonacci and multi-timeframe trend with entry, stop loss, take profit and trailing exit.",
+      },
       { property: "og:title", content: "ChartSage — Live Pro Chart Reader" },
-      { property: "og:description", content: "Entries, stops, targets and real-time exits with the reasoning behind every level." },
+      {
+        property: "og:description",
+        content:
+          "Entries, stops, targets and real-time exits with the reasoning behind every level.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -23,13 +33,61 @@ export const Route = createFileRoute("/")({
 });
 
 const MARKETS: { group: string; items: [string, string][] }[] = [
-  { group: "Crypto", items: [["BTC-USD", "Bitcoin"], ["ETH-USD", "Ethereum"], ["SOL-USD", "Solana"], ["XRP-USD", "XRP"]] },
-  { group: "Forex", items: [["EURUSD=X", "EUR/USD"], ["GBPUSD=X", "GBP/USD"], ["USDJPY=X", "USD/JPY"], ["USDINR=X", "USD/INR"]] },
-  { group: "Commodities", items: [["GC=F", "Gold"], ["SI=F", "Silver"], ["CL=F", "Crude Oil"], ["NG=F", "Nat Gas"]] },
-  { group: "Stocks", items: [["AAPL", "Apple"], ["NVDA", "Nvidia"], ["TSLA", "Tesla"], ["RELIANCE.NS", "Reliance"]] },
-  { group: "Indices", items: [["^GSPC", "S&P 500"], ["^IXIC", "Nasdaq"], ["^NSEI", "Nifty 50"], ["^DJI", "Dow"]] },
+  {
+    group: "Crypto",
+    items: [
+      ["BTC-USD", "Bitcoin"],
+      ["ETH-USD", "Ethereum"],
+      ["SOL-USD", "Solana"],
+      ["XRP-USD", "XRP"],
+    ],
+  },
+  {
+    group: "Forex",
+    items: [
+      ["EURUSD=X", "EUR/USD"],
+      ["GBPUSD=X", "GBP/USD"],
+      ["USDJPY=X", "USD/JPY"],
+      ["USDINR=X", "USD/INR"],
+    ],
+  },
+  {
+    group: "Commodities",
+    items: [
+      ["GC=F", "Gold"],
+      ["SI=F", "Silver"],
+      ["CL=F", "Crude Oil"],
+      ["NG=F", "Nat Gas"],
+    ],
+  },
+  {
+    group: "Stocks",
+    items: [
+      ["AAPL", "Apple"],
+      ["NVDA", "Nvidia"],
+      ["TSLA", "Tesla"],
+      ["RELIANCE.NS", "Reliance"],
+    ],
+  },
+  {
+    group: "Indices",
+    items: [
+      ["^GSPC", "S&P 500"],
+      ["^IXIC", "Nasdaq"],
+      ["^NSEI", "Nifty 50"],
+      ["^DJI", "Dow"],
+    ],
+  },
 ];
-const HTF: Record<Timeframe, Timeframe | null> = { "1m": "15m", "5m": "1h", "15m": "4h", "1h": "1d", "4h": "1d", "1d": "1wk", "1wk": null };
+const HTF: Record<Timeframe, Timeframe | null> = {
+  "1m": "15m",
+  "5m": "1h",
+  "15m": "4h",
+  "1h": "1d",
+  "4h": "1d",
+  "1d": "1wk",
+  "1wk": null,
+};
 
 function Index() {
   const [symbol, setSymbol] = useState("BTC-USD");
@@ -72,7 +130,10 @@ function Index() {
         </div>
         <form
           className="ml-auto flex gap-2"
-          onSubmit={(e) => { e.preventDefault(); if (custom.trim()) setSymbol(custom.trim().toUpperCase()); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (custom.trim()) setSymbol(custom.trim().toUpperCase());
+          }}
         >
           <input
             value={custom}
@@ -80,7 +141,9 @@ function Index() {
             placeholder="Any symbol: MSFT, TCS.NS, ADA-USD, AUDUSD=X"
             className="w-72 rounded-md border border-input bg-secondary px-3 py-1.5 font-mono text-sm outline-none focus:border-ring"
           />
-          <button className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground">Analyze</button>
+          <button className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground">
+            Analyze
+          </button>
         </form>
       </header>
 
@@ -89,12 +152,17 @@ function Index() {
         <aside className="panel h-fit p-2">
           {MARKETS.map((g) => (
             <div key={g.group} className="mb-2">
-              <div className="px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{g.group}</div>
+              <div className="px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                {g.group}
+              </div>
               {g.items.map(([s, n]) => (
                 <button
                   key={s}
                   onClick={() => setSymbol(s)}
-                  className={cn("flex w-full justify-between rounded px-2 py-1 text-left text-sm hover:bg-accent", symbol === s && "bg-accent text-primary")}
+                  className={cn(
+                    "flex w-full justify-between rounded px-2 py-1 text-left text-sm hover:bg-accent",
+                    symbol === s && "bg-accent text-primary",
+                  )}
                 >
                   <span>{n}</span>
                   <span className="font-mono text-[10px] text-muted-foreground">{s}</span>
@@ -109,12 +177,17 @@ function Index() {
           <div className="panel flex flex-wrap items-center gap-4 px-4 py-3">
             <div>
               <div className="text-lg font-bold">{main.data?.name ?? symbol}</div>
-              <div className="font-mono text-xs text-muted-foreground">{symbol} · {main.data?.currency} {main.data?.type}</div>
+              <div className="font-mono text-xs text-muted-foreground">
+                {symbol} · {main.data?.currency} {main.data?.type}
+              </div>
             </div>
             {last && (
               <div className="font-mono">
                 <div className="text-2xl font-semibold">{fmtPrice(last.close)}</div>
-                <div className={cn("text-xs", chg >= 0 ? "text-bull" : "text-bear")}>{chg >= 0 ? "+" : ""}{chg.toFixed(3)}% last bar</div>
+                <div className={cn("text-xs", chg >= 0 ? "text-bull" : "text-bear")}>
+                  {chg >= 0 ? "+" : ""}
+                  {chg.toFixed(3)}% last bar
+                </div>
               </div>
             )}
             <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
@@ -122,33 +195,83 @@ function Index() {
             </div>
             <div className="ml-auto flex gap-1">
               {TIMEFRAMES.map((t) => (
-                <button key={t} onClick={() => setTf(t)} className={cn("rounded px-2.5 py-1 font-mono text-xs", tf === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground")}>{t}</button>
+                <button
+                  key={t}
+                  onClick={() => setTf(t)}
+                  className={cn(
+                    "rounded px-2.5 py-1 font-mono text-xs",
+                    tf === t
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t}
+                </button>
               ))}
             </div>
           </div>
           <div className="panel h-[620px] overflow-hidden">
             {main.isError ? (
-              <div className="flex h-full items-center justify-center p-6 text-center text-sm text-bear">{(main.error as Error).message}. Check the symbol and try again.</div>
+              <div className="flex h-full items-center justify-center p-6 text-center text-sm text-bear">
+                {(main.error as Error).message}. Check the symbol and try again.
+              </div>
             ) : !analysis || !main.data ? (
-              <div className="flex h-full items-center justify-center font-mono text-sm text-muted-foreground">{main.isLoading ? "Loading market data…" : "Not enough history to analyze."}</div>
+              <div className="flex h-full items-center justify-center font-mono text-sm text-muted-foreground">
+                {main.isLoading ? "Loading market data…" : "Not enough history to analyze."}
+              </div>
             ) : (
-              <Suspense fallback={null}><PriceChart candles={main.data.candles} analysis={analysis} /></Suspense>
+              <Suspense fallback={null}>
+                <PriceChart candles={main.data.candles} analysis={analysis} />
+              </Suspense>
             )}
           </div>
           {analysis && (
-            <div className="panel grid grid-cols-2 gap-px overflow-hidden sm:grid-cols-4">
+            <div className="panel grid grid-cols-2 gap-px overflow-hidden sm:grid-cols-4 lg:grid-cols-6">
               {[
                 ["RSI 14", analysis.indicators.rsi.toFixed(1)],
+                [
+                  "StochRSI",
+                  Number.isFinite(analysis.indicators.stochK)
+                    ? `${analysis.indicators.stochK.toFixed(0)}/${analysis.indicators.stochD.toFixed(0)}`
+                    : "—",
+                ],
                 ["ADX 14", analysis.indicators.adx.toFixed(1)],
-                ["ATR 14", fmtPrice(analysis.atr)],
+                [
+                  "CCI 20",
+                  Number.isFinite(analysis.indicators.cci)
+                    ? analysis.indicators.cci.toFixed(0)
+                    : "—",
+                ],
+                [
+                  "MFI 14",
+                  analysis.indicators.mfi != null && Number.isFinite(analysis.indicators.mfi)
+                    ? analysis.indicators.mfi.toFixed(0)
+                    : "—",
+                ],
+                [
+                  "ATR 14",
+                  `${fmtPrice(analysis.atr)} (${analysis.indicators.atrPct.toFixed(0)}%ile)`,
+                ],
                 ["Regime", analysis.regime],
-                ["EMA 20", fmtPrice(analysis.indicators.ema20)],
-                ["EMA 50", fmtPrice(analysis.indicators.ema50)],
-                ["EMA 200", fmtPrice(analysis.indicators.ema200)],
+                ["Volatility", analysis.volRegime],
+                [
+                  "Supertrend",
+                  `${analysis.indicators.supertrendDir === 1 ? "UP" : "DOWN"} · ${fmtPrice(analysis.indicators.supertrend)}`,
+                ],
+                [
+                  "VWAP",
+                  analysis.indicators.vwap != null ? fmtPrice(analysis.indicators.vwap) : "—",
+                ],
                 ["Structure", analysis.structure],
+                [
+                  "Location",
+                  `${analysis.premium.zone} · ${analysis.premium.pct.toFixed(0)}% of range`,
+                ],
               ].map(([k, v]) => (
                 <div key={k} className="bg-card p-3">
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{k}</div>
+                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {k}
+                  </div>
                   <div className="font-mono text-sm">{v}</div>
                 </div>
               ))}
@@ -158,11 +281,18 @@ function Index() {
 
         {/* Analysis */}
         <section className="flex flex-col gap-3">
-          {analysis ? <AnalysisPanel a={analysis} htf={htfTf} /> : <div className="panel p-4 text-sm text-muted-foreground">Analysis appears once data loads.</div>}
+          {analysis ? (
+            <AnalysisPanel a={analysis} htf={htfTf} />
+          ) : (
+            <div className="panel p-4 text-sm text-muted-foreground">
+              Analysis appears once data loads.
+            </div>
+          )}
         </section>
       </div>
       <footer className="px-4 pb-6 text-center text-xs text-muted-foreground">
-        Educational analysis, not financial advice. No method is 100% accurate — always size positions so a stop-out is affordable. Data may be delayed by the exchange.
+        Educational analysis, not financial advice. No method is 100% accurate — always size
+        positions so a stop-out is affordable. Data may be delayed by the exchange.
       </footer>
     </div>
   );
@@ -171,70 +301,187 @@ function Index() {
 function AnalysisPanel({ a, htf }: { a: ReturnType<typeof analyze>; htf: Timeframe | null }) {
   const p = a.plan;
   const bull = p.direction === "LONG";
-  const tone = a.verdict.includes("BUY") ? "text-bull" : a.verdict.includes("SELL") ? "text-bear" : "text-primary";
+  const tone = a.verdict.includes("BUY")
+    ? "text-bull"
+    : a.verdict.includes("SELL")
+      ? "text-bear"
+      : "text-primary";
   const groups = [...new Set(a.factors.map((f) => f.group))];
   return (
     <>
       <div className="panel p-4">
         <div className="flex items-start justify-between">
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Verdict</div>
+            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Verdict
+            </div>
             <div className={cn("text-3xl font-bold", tone)}>{a.verdict}</div>
+            <div
+              className={cn(
+                "mt-1 inline-block rounded px-2 py-0.5 font-mono text-xs font-bold",
+                a.grade === "A+" || a.grade === "A"
+                  ? "bg-bull text-primary-foreground"
+                  : a.grade === "B"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground",
+              )}
+            >
+              Grade {a.grade} setup
+            </div>
           </div>
           <div className="text-right font-mono">
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Confluence</div>
-            <div className="text-xl">{a.score > 0 ? "+" : ""}{a.score.toFixed(1)}</div>
-            <div className="text-xs text-muted-foreground">{a.confidence}% agreement</div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Confluence
+            </div>
+            <div className="text-xl">
+              {a.score > 0 ? "+" : ""}
+              {a.score.toFixed(1)}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {a.confidence}% calibrated confidence
+            </div>
           </div>
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded bg-secondary">
-          <div className={cn("h-full", a.score >= 0 ? "bg-bull" : "bg-bear")} style={{ width: `${Math.min(100, a.confidence)}%` }} />
+          <div
+            className={cn("h-full", a.score >= 0 ? "bg-bull" : "bg-bear")}
+            style={{ width: `${Math.min(100, a.confidence)}%` }}
+          />
         </div>
       </div>
 
       <div className="panel p-4">
         <div className="mb-3 flex items-center justify-between">
-          <span className={cn("rounded px-2 py-0.5 font-mono text-xs font-semibold", bull ? "bg-bull text-primary-foreground" : "bg-bear text-primary-foreground")}>{p.direction}</span>
-          <span className={cn("font-mono text-xs", p.status === "ACTIVE SETUP" ? "text-bull" : "text-primary")}>{p.status}</span>
+          <span
+            className={cn(
+              "rounded px-2 py-0.5 font-mono text-xs font-semibold",
+              bull ? "bg-bull text-primary-foreground" : "bg-bear text-primary-foreground",
+            )}
+          >
+            {p.direction}
+          </span>
+          <span
+            className={cn(
+              "font-mono text-xs",
+              p.status === "ACTIVE SETUP"
+                ? "text-bull"
+                : p.status === "NO TRADE"
+                  ? "text-bear"
+                  : "text-primary",
+            )}
+          >
+            {p.status}
+          </span>
         </div>
         <div className="grid grid-cols-2 gap-2 font-mono text-sm">
           <Lvl k={`Entry · ${p.entryType}`} v={fmtPrice(p.entry)} cls="text-primary" />
+          {p.deepEntry != null && (
+            <Lvl k="Deep limit · golden pocket/OB" v={fmtPrice(p.deepEntry)} cls="text-info" />
+          )}
           <Lvl k="Stop loss" v={`${fmtPrice(p.stop)} (${p.riskPct.toFixed(2)}%)`} cls="text-bear" />
           <Lvl k={`TP1 · ${p.rr[0].toFixed(1)}R`} v={fmtPrice(p.tp1)} cls="text-bull" />
           <Lvl k={`TP2 · ${p.rr[1].toFixed(1)}R`} v={fmtPrice(p.tp2)} cls="text-bull" />
           <Lvl k={`TP3 · ${p.rr[2].toFixed(1)}R`} v={fmtPrice(p.tp3)} cls="text-bull" />
           <Lvl k="Live trailing exit" v={fmtPrice(p.trailingStop)} cls="text-info" />
         </div>
-        <div className="mt-2 font-mono text-[11px] text-muted-foreground">Entry zone {fmtPrice(p.entryZone[0])} – {fmtPrice(p.entryZone[1])}</div>
+        <div className="mt-2 font-mono text-[11px] text-muted-foreground">
+          Entry zone {fmtPrice(p.entryZone[0])} – {fmtPrice(p.entryZone[1])}
+        </div>
       </div>
 
-      <Block title="Why this entry">{p.entryReason.map((r, i) => <li key={i}>{r}</li>)}</Block>
-      <Block title="Why this stop loss"><li>{p.stopReason}</li><li className="text-bear">{p.invalidation}</li></Block>
-      <Block title="Take-profit logic">{p.tpReason.map((r, i) => <li key={i}>{r}</li>)}</Block>
-      <Block title="Real-time exit rules">{p.exitRules.map((r, i) => <li key={i}>{r}</li>)}</Block>
+      <Block title="Why this entry">
+        {p.entryReason.map((r, i) => (
+          <li key={i}>{r}</li>
+        ))}
+      </Block>
+      <Block title="Why this stop loss">
+        <li>{p.stopReason}</li>
+        <li className="text-bear">{p.invalidation}</li>
+      </Block>
+      <Block title="Take-profit logic">
+        {p.tpReason.map((r, i) => (
+          <li key={i}>{r}</li>
+        ))}
+      </Block>
+      <Block title="Real-time exit rules">
+        {p.exitRules.map((r, i) => (
+          <li key={i}>{r}</li>
+        ))}
+      </Block>
+      <Block title="Position sizing (risk-first)">
+        <li>{p.sizingNote}</li>
+      </Block>
 
       <div className="panel p-4">
-        <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Full chart reading {htf ? `· HTF ${htf}` : ""}</div>
+        <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          Full chart reading {htf ? `· HTF ${htf}` : ""}
+        </div>
         {groups.map((g) => (
           <div key={g} className="mb-3">
             <div className="mb-1 text-xs font-semibold text-primary">{g}</div>
-            {a.factors.filter((f) => f.group === g).map((f, i) => (
-              <div key={i} className="mb-1.5 flex gap-2 text-xs">
-                <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", f.bias === "bull" ? "bg-bull" : f.bias === "bear" ? "bg-bear" : "bg-muted-foreground")} />
-                <div><span className="font-semibold">{f.label}</span> <span className="text-muted-foreground">— {f.detail}</span></div>
-              </div>
-            ))}
+            {a.factors
+              .filter((f) => f.group === g)
+              .map((f, i) => (
+                <div key={i} className="mb-1.5 flex gap-2 text-xs">
+                  <span
+                    className={cn(
+                      "mt-1 h-2 w-2 shrink-0 rounded-full",
+                      f.bias === "bull"
+                        ? "bg-bull"
+                        : f.bias === "bear"
+                          ? "bg-bear"
+                          : "bg-muted-foreground",
+                    )}
+                  />
+                  <div>
+                    <span className="font-semibold">{f.label}</span>{" "}
+                    <span className="text-muted-foreground">— {f.detail}</span>
+                  </div>
+                </div>
+              ))}
           </div>
         ))}
         <div className="mt-2 text-xs font-semibold text-primary">Key levels</div>
         <div className="mt-1 grid grid-cols-2 gap-1 font-mono text-xs">
-          {a.levels.sort((x, y) => y.price - x.price).map((l, i) => (
-            <div key={i} className={l.kind === "support" ? "text-bull" : "text-bear"}>{l.kind === "support" ? "S" : "R"} {fmtPrice(l.price)} ×{l.touches}</div>
-          ))}
+          {a.levels
+            .sort((x, y) => y.price - x.price)
+            .map((l, i) => (
+              <div key={i} className={l.kind === "support" ? "text-bull" : "text-bear"}>
+                {l.kind === "support" ? "S" : "R"} {fmtPrice(l.price)} ×{l.touches}
+              </div>
+            ))}
         </div>
+        {a.profile && (
+          <>
+            <div className="mt-2 text-xs font-semibold text-primary">Volume profile · 150 bars</div>
+            <div className="mt-1 grid grid-cols-3 gap-1 font-mono text-xs text-muted-foreground">
+              <div>VAH {fmtPrice(a.profile.vah)}</div>
+              <div className="text-primary">POC {fmtPrice(a.profile.poc)}</div>
+              <div>VAL {fmtPrice(a.profile.val)}</div>
+            </div>
+          </>
+        )}
+        {a.pools.length > 0 && (
+          <>
+            <div className="mt-2 text-xs font-semibold text-primary">
+              Liquidity pools (resting stops)
+            </div>
+            <div className="mt-1 grid grid-cols-2 gap-1 font-mono text-xs">
+              {a.pools.map((p, i) => (
+                <div key={i} className={p.kind === "equal-highs" ? "text-bull" : "text-bear"}>
+                  {p.kind === "equal-highs" ? "BSL" : "SSL"} {fmtPrice(p.price)} ×{p.touches}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         <div className="mt-2 text-xs font-semibold text-primary">Fibonacci</div>
         <div className="mt-1 grid grid-cols-3 gap-1 font-mono text-xs text-muted-foreground">
-          {a.fib.map((f) => <div key={f.level}>{f.level} · {fmtPrice(f.price)}</div>)}
+          {a.fib.map((f) => (
+            <div key={f.level}>
+              {f.level} · {fmtPrice(f.price)}
+            </div>
+          ))}
         </div>
       </div>
     </>
@@ -252,7 +499,9 @@ function Lvl({ k, v, cls }: { k: string; v: string; cls: string }) {
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="panel p-4">
-      <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{title}</div>
+      <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        {title}
+      </div>
       <ul className="list-disc space-y-1.5 pl-4 text-xs leading-relaxed">{children}</ul>
     </div>
   );
