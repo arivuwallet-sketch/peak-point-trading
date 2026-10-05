@@ -22,7 +22,7 @@ export function PriceChart({ candles, analysis }: { candles: Candle[]; analysis:
         layout: {
           background: { color: T.bg },
           textColor: T.text,
-          fontFamily: "JetBrains Mono, monospace",
+          fontFamily: "IBM Plex Mono, monospace",
           fontSize: 11,
         },
         grid: { vertLines: { color: T.grid }, horzLines: { color: T.grid } },

@@ -5,6 +5,7 @@ import { lazy, Suspense, useMemo, useState } from "react";
 import { getCandles, TIMEFRAMES, type Timeframe } from "@/lib/market.functions";
 import { analyze, fmtPrice, trendBias, type Bias } from "@/lib/analysis";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const PriceChart = lazy(() =>
   import("@/components/PriceChart").then((m) => ({ default: m.PriceChart })),
@@ -93,6 +94,7 @@ function Index() {
   const [symbol, setSymbol] = useState("BTC-USD");
   const [tf, setTf] = useState<Timeframe>("1h");
   const [custom, setCustom] = useState("");
+  const [group, setGroup] = useState("Crypto");
   const fetchCandles = useServerFn(getCandles);
   const refresh = tf === "1m" || tf === "5m" ? 10_000 : 20_000;
 
@@ -121,108 +123,140 @@ function Index() {
   const prev = main.data?.candles.at(-2);
   const chg = last && prev ? ((last.close - prev.close) / prev.close) * 100 : 0;
 
+  const groupItems = MARKETS.find((g) => g.group === group)?.items ?? [];
+  const known = MARKETS.flatMap((g) => g.items).find(([s]) => s === symbol);
+
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-30 flex flex-wrap items-center gap-4 border-b border-border bg-background/70 px-5 py-3 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="glow-primary grid h-9 w-9 place-items-center rounded-xl bg-primary font-mono text-sm font-bold text-primary-foreground">
-            CS
+      {/* Top bar */}
+      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1680px] flex-wrap items-center gap-x-6 gap-y-3 px-5 py-3">
+          <div className="flex items-baseline gap-2">
+            <span className="serif text-3xl italic leading-none">ChartSage</span>
+            <span className="h-1.5 w-1.5 translate-y-[-2px] rounded-full bg-primary" />
           </div>
-          <div className="leading-tight">
-            <div className="text-gradient text-lg font-bold tracking-tight">ChartSage</div>
-            <div className="eyebrow">Pro chart reader</div>
+          <nav className="flex items-center gap-1 overflow-x-auto">
+            {MARKETS.map((g) => (
+              <button
+                key={g.group}
+                onClick={() => setGroup(g.group)}
+                className={cn(
+                  "rounded-full px-3.5 py-1.5 text-sm font-medium transition",
+                  group === g.group
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {g.group}
+              </button>
+            ))}
+          </nav>
+          <form
+            className="ml-auto flex items-center gap-2 rounded-full border border-input bg-secondary py-1 pl-4 pr-1 transition focus-within:border-ring"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (custom.trim()) setSymbol(custom.trim().toUpperCase());
+            }}
+          >
+            <input
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              placeholder="Search any symbol — MSFT, TCS.NS, AUDUSD=X"
+              className="w-64 bg-transparent font-mono text-xs outline-none placeholder:text-muted-foreground/70"
+            />
+            <button className="rounded-full bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground transition hover:brightness-105 active:scale-95">
+              Read chart
+            </button>
+          </form>
+        </div>
+        {/* Instrument strip */}
+        <div className="border-t border-border">
+          <div className="mx-auto flex max-w-[1680px] gap-2 overflow-x-auto px-5 py-2">
+            {groupItems.map(([s, n]) => (
+              <button
+                key={s}
+                onClick={() => setSymbol(s)}
+                className={cn(
+                  "flex shrink-0 items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition",
+                  symbol === s
+                    ? "border-primary/60 bg-primary/10 text-foreground"
+                    : "border-border text-muted-foreground hover:border-foreground/20 hover:text-foreground",
+                )}
+              >
+                <span className="font-semibold">{n}</span>
+                <span className="font-mono text-[10px] opacity-70">{s}</span>
+              </button>
+            ))}
           </div>
         </div>
-        <form
-          className="ml-auto flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (custom.trim()) setSymbol(custom.trim().toUpperCase());
-          }}
-        >
-          <input
-            value={custom}
-            onChange={(e) => setCustom(e.target.value)}
-            placeholder="Any symbol: MSFT, TCS.NS, ADA-USD, AUDUSD=X"
-            className="w-72 rounded-xl border border-input bg-secondary/60 px-4 py-2 font-mono text-sm outline-none transition placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/25"
-          />
-          <button className="glow-primary rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 active:scale-95">
-            Analyze
-          </button>
-        </form>
       </header>
 
-      <div className="mx-auto grid max-w-[1800px] gap-4 p-4 lg:grid-cols-[210px_1fr_400px]">
-        {/* Watchlist */}
-        <aside className="panel h-fit p-2 lg:sticky lg:top-20">
-          {MARKETS.map((g) => (
-            <div key={g.group} className="mb-2">
-              <div className="px-2 py-1 eyebrow">
-                {g.group}
+      <div className="mx-auto grid max-w-[1680px] gap-5 px-5 py-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <main className="flex min-w-0 flex-col gap-5">
+          {/* Instrument header */}
+          <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
+            <div className="min-w-0">
+              <div className="eyebrow mb-1">
+                {main.data?.type ?? "Market"} · {symbol}
               </div>
-              {g.items.map(([s, n]) => (
-                <button
-                  key={s}
-                  onClick={() => setSymbol(s)}
-                  className={cn(
-                    "flex w-full justify-between rounded-lg border-l-2 border-transparent px-2.5 py-1.5 text-left text-sm transition hover:bg-accent/70",
-                    symbol === s && "border-primary bg-accent text-primary",
-                  )}
-                >
-                  <span>{n}</span>
-                  <span className="font-mono text-[10px] text-muted-foreground">{s}</span>
-                </button>
-              ))}
-            </div>
-          ))}
-        </aside>
-
-        {/* Chart */}
-        <main className="flex min-w-0 flex-col gap-3">
-          <div className="panel flex flex-wrap items-center gap-4 px-4 py-3">
-            <div>
-              <div className="text-xl font-bold tracking-tight">{main.data?.name ?? symbol}</div>
-              <div className="font-mono text-xs text-muted-foreground">
-                {symbol} · {main.data?.currency} {main.data?.type}
-              </div>
+              <h1 className="serif truncate text-5xl leading-none">
+                {known?.[1] ?? main.data?.name ?? symbol}
+              </h1>
             </div>
             {last && (
-              <div className="font-mono">
-                <div className="text-3xl font-semibold tabular-nums">{fmtPrice(last.close)}</div>
-                <div className={cn("text-xs", chg >= 0 ? "text-bull" : "text-bear")}>
-                  {chg >= 0 ? "+" : ""}
-                  {chg.toFixed(3)}% last bar
+              <div className="flex items-end gap-3">
+                <div className="font-mono text-4xl font-medium leading-none tabular-nums">
+                  {fmtPrice(last.close)}
                 </div>
-              </div>
-            )}
-            <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
-              <span className="live-dot h-2 w-2 rounded-full bg-bull" /> LIVE · {refresh / 1000}s
-            </div>
-            <div className="ml-auto flex gap-1 rounded-xl bg-secondary/60 p-1">
-              {TIMEFRAMES.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTf(t)}
+                <span
                   className={cn(
-                    "rounded-lg px-3 py-1 font-mono text-xs transition",
-                    tf === t
-                      ? "glow-primary bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground",
+                    "rounded-full px-2.5 py-1 font-mono text-xs font-semibold",
+                    chg >= 0 ? "bg-bull/15 text-bull" : "bg-bear/15 text-bear",
                   )}
                 >
-                  {t}
-                </button>
-              ))}
+                  {chg >= 0 ? "▲ +" : "▼ "}
+                  {chg.toFixed(2)}%
+                </span>
+                <span className="pb-1 font-mono text-[10px] uppercase text-muted-foreground">
+                  {main.data?.currency}
+                </span>
+              </div>
+            )}
+            <div className="ml-auto flex items-center gap-4">
+              <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
+                <span className="live-dot h-1.5 w-1.5 rounded-full bg-bull" />
+                Live · {refresh / 1000}s
+              </div>
+              <div className="flex rounded-lg border border-border p-0.5">
+                {TIMEFRAMES.map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTf(t)}
+                    className={cn(
+                      "rounded-md px-3 py-1 font-mono text-xs transition",
+                      tf === t
+                        ? "bg-primary font-semibold text-primary-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          <div className="panel h-[640px] overflow-hidden">
+
+          {/* Chart */}
+          <div className="panel h-[600px] overflow-hidden">
             {main.isError ? (
               <div className="flex h-full items-center justify-center p-6 text-center text-sm text-bear">
                 {(main.error as Error).message}. Check the symbol and try again.
               </div>
             ) : !analysis || !main.data ? (
-              <div className="flex h-full items-center justify-center font-mono text-sm text-muted-foreground">
-                {main.isLoading ? "Loading market data…" : "Not enough history to analyze."}
+              <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+                <span className="serif text-2xl italic">
+                  {main.isLoading ? "Reading the tape…" : "Not enough history to analyze."}
+                </span>
               </div>
             ) : (
               <Suspense fallback={null}>
@@ -230,290 +264,328 @@ function Index() {
               </Suspense>
             )}
           </div>
-          {analysis && (
-            <div className="panel grid grid-cols-2 gap-px overflow-hidden sm:grid-cols-4 lg:grid-cols-6">
-              {[
-                ["RSI 14", analysis.indicators.rsi.toFixed(1)],
-                [
-                  "StochRSI",
-                  Number.isFinite(analysis.indicators.stochK)
-                    ? `${analysis.indicators.stochK.toFixed(0)}/${analysis.indicators.stochD.toFixed(0)}`
-                    : "—",
-                ],
-                ["ADX 14", analysis.indicators.adx.toFixed(1)],
-                [
-                  "CCI 20",
-                  Number.isFinite(analysis.indicators.cci)
-                    ? analysis.indicators.cci.toFixed(0)
-                    : "—",
-                ],
-                [
-                  "MFI 14",
-                  analysis.indicators.mfi != null && Number.isFinite(analysis.indicators.mfi)
-                    ? analysis.indicators.mfi.toFixed(0)
-                    : "—",
-                ],
-                [
-                  "ATR 14",
-                  `${fmtPrice(analysis.atr)} (${analysis.indicators.atrPct.toFixed(0)}%ile)`,
-                ],
-                ["Regime", analysis.regime],
-                ["Volatility", analysis.volRegime],
-                [
-                  "Supertrend",
-                  `${analysis.indicators.supertrendDir === 1 ? "UP" : "DOWN"} · ${fmtPrice(analysis.indicators.supertrend)}`,
-                ],
-                [
-                  "VWAP",
-                  analysis.indicators.vwap != null ? fmtPrice(analysis.indicators.vwap) : "—",
-                ],
-                ["Structure", analysis.structure],
-                [
-                  "Location",
-                  `${analysis.premium.zone} · ${analysis.premium.pct.toFixed(0)}% of range`,
-                ],
-              ].map(([k, v]) => (
-                <div key={k} className="bg-card p-3">
-                  <div className="eyebrow">
-                    {k}
-                  </div>
-                  <div className="font-mono text-sm">{v}</div>
-                </div>
-              ))}
-            </div>
-          )}
+
+          {analysis && <Details a={analysis} htf={htfTf} />}
         </main>
 
-        {/* Analysis */}
-        <section className="flex flex-col gap-3">
+        <aside className="flex flex-col gap-5 xl:sticky xl:top-[124px] xl:h-fit">
           {analysis ? (
-            <AnalysisPanel a={analysis} htf={htfTf} />
+            <TradeTicket a={analysis} />
           ) : (
-            <div className="panel p-4 text-sm text-muted-foreground">
-              Analysis appears once data loads.
+            <div className="panel p-6 text-sm text-muted-foreground">
+              The trade plan appears once data loads.
             </div>
           )}
-        </section>
+        </aside>
       </div>
-      <footer className="px-4 pb-6 text-center text-xs text-muted-foreground">
+      <footer className="mx-auto max-w-[1680px] border-t border-border px-5 py-6 text-xs text-muted-foreground">
         Educational analysis, not financial advice. No method is 100% accurate — always size
-        positions so a stop-out is affordable. Data may be delayed by the exchange.
+        positions so a stop-out is affordable. Free data may be delayed by the exchange.
       </footer>
     </div>
   );
 }
 
-function AnalysisPanel({ a, htf }: { a: ReturnType<typeof analyze>; htf: Timeframe | null }) {
+type A = ReturnType<typeof analyze>;
+
+function TradeTicket({ a }: { a: A }) {
   const p = a.plan;
-  const bull = p.direction === "LONG";
-  const tone = a.verdict.includes("BUY")
-    ? "text-bull"
-    : a.verdict.includes("SELL")
-      ? "text-bear"
-      : "text-primary";
-  const groups = [...new Set(a.factors.map((f) => f.group))];
+  const long = p.direction === "LONG";
+  const tone = a.verdict.includes("BUY") ? "bull" : a.verdict.includes("SELL") ? "bear" : "neutral";
+  const ladder = [
+    { k: "TP3", v: p.tp3, r: p.rr[2], c: "text-bull" },
+    { k: "TP2", v: p.tp2, r: p.rr[1], c: "text-bull" },
+    { k: "TP1", v: p.tp1, r: p.rr[0], c: "text-bull" },
+    { k: "Entry", v: p.entry, r: null, c: "text-primary", sub: p.entryType },
+    ...(p.deepEntry != null
+      ? [{ k: "Deep limit", v: p.deepEntry, r: null, c: "text-info", sub: "golden pocket / OB" }]
+      : []),
+    { k: "Trail", v: p.trailingStop, r: null, c: "text-info", sub: "live exit" },
+    { k: "Stop", v: p.stop, r: null, c: "text-bear", sub: `${p.riskPct.toFixed(2)}% risk` },
+  ].sort((x, y) => (long ? y.v - x.v : x.v - y.v));
+
   return (
     <>
-      <div
-        className={cn(
-          "panel relative overflow-hidden p-5",
-          a.score > 0 ? "glow-bull" : a.score < 0 ? "glow-bear" : "glow-primary",
-        )}
-      >
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="eyebrow">
-              Verdict
-            </div>
-            <div className={cn("text-4xl font-bold tracking-tight", tone)}>{a.verdict}</div>
-            <div
+      <div className="panel overflow-hidden">
+        <div
+          className={cn(
+            "h-1",
+            tone === "bull" ? "bg-bull" : tone === "bear" ? "bg-bear" : "bg-primary",
+          )}
+        />
+        <div className="p-5">
+          <div className="flex items-center justify-between">
+            <span className="eyebrow">The verdict</span>
+            <span
               className={cn(
-                "mt-1 inline-block rounded px-2 py-0.5 font-mono text-xs font-bold",
+                "rounded-full px-2.5 py-0.5 font-mono text-[11px] font-semibold",
                 a.grade === "A+" || a.grade === "A"
-                  ? "bg-bull text-primary-foreground"
+                  ? "bg-primary text-primary-foreground"
                   : a.grade === "B"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground",
+                    ? "border border-primary/50 text-primary"
+                    : "border border-border text-muted-foreground",
               )}
             >
-              Grade {a.grade} setup
-            </div>
+              Grade {a.grade}
+            </span>
           </div>
-          <div className="text-right font-mono">
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Confluence
-            </div>
-            <div className="text-xl">
-              {a.score > 0 ? "+" : ""}
-              {a.score.toFixed(1)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {a.confidence}% calibrated confidence
-            </div>
-          </div>
-        </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
           <div
-            className={cn("h-full rounded-full transition-all duration-700", a.score >= 0 ? "bg-bull glow-bull" : "bg-bear glow-bear")}
-            style={{ width: `${Math.min(100, a.confidence)}%` }}
-          />
+            className={cn(
+              "serif mt-2 text-5xl leading-[0.95]",
+              tone === "bull" ? "text-bull" : tone === "bear" ? "text-bear" : "text-foreground",
+            )}
+          >
+            {a.verdict.charAt(0) + a.verdict.slice(1).toLowerCase()}
+          </div>
+          <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-4">
+            <Stat k="Confluence" v={`${a.score > 0 ? "+" : ""}${a.score.toFixed(1)}`} />
+            <Stat k="Confidence" v={`${a.confidence}%`} />
+            <Stat
+              k="Status"
+              v={p.status === "ACTIVE SETUP" ? "Active" : p.status === "NO TRADE" ? "No trade" : "Wait"}
+              cls={
+                p.status === "ACTIVE SETUP"
+                  ? "text-bull"
+                  : p.status === "NO TRADE"
+                    ? "text-bear"
+                    : "text-primary"
+              }
+            />
+          </div>
+          <div className="mt-4 h-1 overflow-hidden rounded-full bg-secondary">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-700",
+                a.score >= 0 ? "bg-bull" : "bg-bear",
+              )}
+              style={{ width: `${Math.min(100, a.confidence)}%` }}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="panel p-4">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="panel p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <span className="eyebrow">Trade ticket</span>
           <span
             className={cn(
-              "rounded px-2 py-0.5 font-mono text-xs font-semibold",
-              bull ? "bg-bull text-primary-foreground" : "bg-bear text-primary-foreground",
+              "rounded px-2 py-0.5 font-mono text-[11px] font-bold",
+              long ? "bg-bull/15 text-bull" : "bg-bear/15 text-bear",
             )}
           >
-            {p.direction}
-          </span>
-          <span
-            className={cn(
-              "font-mono text-xs",
-              p.status === "ACTIVE SETUP"
-                ? "text-bull"
-                : p.status === "NO TRADE"
-                  ? "text-bear"
-                  : "text-primary",
-            )}
-          >
-            {p.status}
+            {long ? "▲ LONG" : "▼ SHORT"}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-2 font-mono text-sm">
-          <Lvl k={`Entry · ${p.entryType}`} v={fmtPrice(p.entry)} cls="text-primary" />
-          {p.deepEntry != null && (
-            <Lvl k="Deep limit · golden pocket/OB" v={fmtPrice(p.deepEntry)} cls="text-info" />
-          )}
-          <Lvl k="Stop loss" v={`${fmtPrice(p.stop)} (${p.riskPct.toFixed(2)}%)`} cls="text-bear" />
-          <Lvl k={`TP1 · ${p.rr[0].toFixed(1)}R`} v={fmtPrice(p.tp1)} cls="text-bull" />
-          <Lvl k={`TP2 · ${p.rr[1].toFixed(1)}R`} v={fmtPrice(p.tp2)} cls="text-bull" />
-          <Lvl k={`TP3 · ${p.rr[2].toFixed(1)}R`} v={fmtPrice(p.tp3)} cls="text-bull" />
-          <Lvl k="Live trailing exit" v={fmtPrice(p.trailingStop)} cls="text-info" />
-        </div>
-        <div className="mt-2 font-mono text-[11px] text-muted-foreground">
+        <ol className="relative">
+          <span className="absolute bottom-3 left-[5px] top-3 w-px bg-border" />
+          {ladder.map((l) => (
+            <li key={l.k} className="relative flex items-center gap-3 py-2">
+              <span className={cn("relative z-10 h-[11px] w-[11px] rounded-full border-2 border-card bg-current", l.c)} />
+              <div className="flex-1">
+                <div className="text-sm font-semibold">{l.k}</div>
+                {(l.sub || l.r != null) && (
+                  <div className="font-mono text-[10px] text-muted-foreground">
+                    {l.r != null ? `${l.r.toFixed(1)}R reward` : l.sub}
+                  </div>
+                )}
+              </div>
+              <div className={cn("font-mono text-base font-medium tabular-nums", l.c)}>
+                {fmtPrice(l.v)}
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-3 rounded-md bg-secondary px-3 py-2 font-mono text-[11px] text-muted-foreground">
           Entry zone {fmtPrice(p.entryZone[0])} – {fmtPrice(p.entryZone[1])}
         </div>
       </div>
 
-      <Block title="Why this entry">
-        {p.entryReason.map((r, i) => (
-          <li key={i}>{r}</li>
-        ))}
-      </Block>
-      <Block title="Why this stop loss">
-        <li>{p.stopReason}</li>
-        <li className="text-bear">{p.invalidation}</li>
-      </Block>
-      <Block title="Take-profit logic">
-        {p.tpReason.map((r, i) => (
-          <li key={i}>{r}</li>
-        ))}
-      </Block>
-      <Block title="Real-time exit rules">
-        {p.exitRules.map((r, i) => (
-          <li key={i}>{r}</li>
-        ))}
-      </Block>
-      <Block title="Position sizing (risk-first)">
-        <li>{p.sizingNote}</li>
-      </Block>
-
-      <div className="panel p-4">
-        <div className="mb-2 eyebrow">
-          Full chart reading {htf ? `· HTF ${htf}` : ""}
-        </div>
-        {groups.map((g) => (
-          <div key={g} className="mb-3">
-            <div className="mb-1 text-xs font-semibold text-primary">{g}</div>
-            {a.factors
-              .filter((f) => f.group === g)
-              .map((f, i) => (
-                <div key={i} className="mb-1.5 flex gap-2 text-xs">
-                  <span
-                    className={cn(
-                      "mt-1 h-2 w-2 shrink-0 rounded-full",
-                      f.bias === "bull"
-                        ? "bg-bull"
-                        : f.bias === "bear"
-                          ? "bg-bear"
-                          : "bg-muted-foreground",
-                    )}
-                  />
-                  <div>
-                    <span className="font-semibold">{f.label}</span>{" "}
-                    <span className="text-muted-foreground">— {f.detail}</span>
-                  </div>
-                </div>
-              ))}
-          </div>
-        ))}
-        <div className="mt-2 text-xs font-semibold text-primary">Key levels</div>
-        <div className="mt-1 grid grid-cols-2 gap-1 font-mono text-xs">
-          {a.levels
-            .sort((x, y) => y.price - x.price)
-            .map((l, i) => (
-              <div key={i} className={l.kind === "support" ? "text-bull" : "text-bear"}>
-                {l.kind === "support" ? "S" : "R"} {fmtPrice(l.price)} ×{l.touches}
-              </div>
+      <div className="panel p-5">
+        <Tabs defaultValue="entry">
+          <TabsList className="mb-3 grid h-auto w-full grid-cols-5 bg-secondary p-0.5">
+            {[
+              ["entry", "Entry"],
+              ["stop", "Stop"],
+              ["tp", "Targets"],
+              ["exit", "Exit"],
+              ["size", "Size"],
+            ].map(([v, l]) => (
+              <TabsTrigger key={v} value={v} className="px-1 py-1 text-xs">
+                {l}
+              </TabsTrigger>
             ))}
-        </div>
-        {a.profile && (
-          <>
-            <div className="mt-2 text-xs font-semibold text-primary">Volume profile · 150 bars</div>
-            <div className="mt-1 grid grid-cols-3 gap-1 font-mono text-xs text-muted-foreground">
-              <div>VAH {fmtPrice(a.profile.vah)}</div>
-              <div className="text-primary">POC {fmtPrice(a.profile.poc)}</div>
-              <div>VAL {fmtPrice(a.profile.val)}</div>
-            </div>
-          </>
-        )}
-        {a.pools.length > 0 && (
-          <>
-            <div className="mt-2 text-xs font-semibold text-primary">
-              Liquidity pools (resting stops)
-            </div>
-            <div className="mt-1 grid grid-cols-2 gap-1 font-mono text-xs">
-              {a.pools.map((p, i) => (
-                <div key={i} className={p.kind === "equal-highs" ? "text-bull" : "text-bear"}>
-                  {p.kind === "equal-highs" ? "BSL" : "SSL"} {fmtPrice(p.price)} ×{p.touches}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-        <div className="mt-2 text-xs font-semibold text-primary">Fibonacci</div>
-        <div className="mt-1 grid grid-cols-3 gap-1 font-mono text-xs text-muted-foreground">
-          {a.fib.map((f) => (
-            <div key={f.level}>
-              {f.level} · {fmtPrice(f.price)}
-            </div>
-          ))}
-        </div>
+          </TabsList>
+          <TabsContent value="entry"><Reasons items={p.entryReason} /></TabsContent>
+          <TabsContent value="stop">
+            <Reasons items={[p.stopReason]} />
+            <p className="mt-3 border-l-2 border-bear pl-3 text-xs text-bear">{p.invalidation}</p>
+          </TabsContent>
+          <TabsContent value="tp"><Reasons items={p.tpReason} /></TabsContent>
+          <TabsContent value="exit"><Reasons items={p.exitRules} /></TabsContent>
+          <TabsContent value="size"><Reasons items={[p.sizingNote]} /></TabsContent>
+        </Tabs>
       </div>
     </>
   );
 }
 
-function Lvl({ k, v, cls }: { k: string; v: string; cls: string }) {
+function Details({ a, htf }: { a: A; htf: Timeframe | null }) {
+  const groups = [...new Set(a.factors.map((f) => f.group))];
+  const ind: [string, string][] = [
+    ["RSI 14", a.indicators.rsi.toFixed(1)],
+    [
+      "StochRSI",
+      Number.isFinite(a.indicators.stochK)
+        ? `${a.indicators.stochK.toFixed(0)} / ${a.indicators.stochD.toFixed(0)}`
+        : "—",
+    ],
+    ["ADX 14", a.indicators.adx.toFixed(1)],
+    ["CCI 20", Number.isFinite(a.indicators.cci) ? a.indicators.cci.toFixed(0) : "—"],
+    [
+      "MFI 14",
+      a.indicators.mfi != null && Number.isFinite(a.indicators.mfi) ? a.indicators.mfi.toFixed(0) : "—",
+    ],
+    ["ATR 14", `${fmtPrice(a.atr)} · ${a.indicators.atrPct.toFixed(0)}%ile`],
+    ["Regime", a.regime],
+    ["Volatility", a.volRegime],
+    [
+      "Supertrend",
+      `${a.indicators.supertrendDir === 1 ? "Up" : "Down"} · ${fmtPrice(a.indicators.supertrend)}`,
+    ],
+    ["VWAP", a.indicators.vwap != null ? fmtPrice(a.indicators.vwap) : "—"],
+    ["Structure", a.structure],
+    ["Location", `${a.premium.zone} · ${a.premium.pct.toFixed(0)}%`],
+  ];
   return (
-    <div className="relative overflow-hidden rounded-lg border border-border bg-secondary/50 p-2.5 pl-3.5">
-      <span className={cn("absolute inset-y-0 left-0 w-1 bg-current", cls)} />
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{k}</div>
-      <div className={cn("text-base font-semibold tabular-nums", cls)}>{v}</div>
+    <Tabs defaultValue="reading" className="panel p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="serif text-3xl">
+          The reading{htf && <span className="text-muted-foreground"> · HTF {htf}</span>}
+        </h2>
+        <TabsList className="bg-secondary p-0.5">
+          <TabsTrigger value="reading" className="text-xs">Analysis</TabsTrigger>
+          <TabsTrigger value="indicators" className="text-xs">Indicators</TabsTrigger>
+          <TabsTrigger value="levels" className="text-xs">Levels</TabsTrigger>
+        </TabsList>
+      </div>
+
+      <TabsContent value="reading">
+        <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
+          {groups.map((g) => (
+            <section key={g}>
+              <div className="eyebrow mb-2 border-b border-border pb-2">{g}</div>
+              <ul className="space-y-2.5">
+                {a.factors
+                  .filter((f) => f.group === g)
+                  .map((f, i) => (
+                    <li key={i} className="flex gap-3 text-sm">
+                      <span
+                        className={cn(
+                          "mt-0.5 shrink-0 font-mono text-xs",
+                          f.bias === "bull" ? "text-bull" : f.bias === "bear" ? "text-bear" : "text-muted-foreground",
+                        )}
+                      >
+                        {f.bias === "bull" ? "▲" : f.bias === "bear" ? "▼" : "●"}
+                      </span>
+                      <div>
+                        <span className="font-semibold">{f.label}</span>
+                        <span className="text-muted-foreground"> — {f.detail}</span>
+                      </div>
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="indicators">
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-3 lg:grid-cols-4">
+          {ind.map(([k, v]) => (
+            <div key={k} className="bg-card p-4">
+              <div className="eyebrow">{k}</div>
+              <div className="mt-1 font-mono text-base">{v}</div>
+            </div>
+          ))}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="levels">
+        <div className="grid gap-6 md:grid-cols-2">
+          <LevelList
+            title="Support & resistance"
+            rows={[...a.levels]
+              .sort((x, y) => y.price - x.price)
+              .map((l) => ({
+                k: l.kind === "support" ? "Support" : "Resistance",
+                v: `${fmtPrice(l.price)}  ×${l.touches}`,
+                c: l.kind === "support" ? "text-bull" : "text-bear",
+              }))}
+          />
+          <LevelList
+            title="Fibonacci retracement"
+            rows={a.fib.map((f) => ({ k: String(f.level), v: fmtPrice(f.price), c: "text-foreground" }))}
+          />
+          {a.profile && (
+            <LevelList
+              title="Volume profile · 150 bars"
+              rows={[
+                { k: "Value area high", v: fmtPrice(a.profile.vah), c: "text-foreground" },
+                { k: "Point of control", v: fmtPrice(a.profile.poc), c: "text-primary" },
+                { k: "Value area low", v: fmtPrice(a.profile.val), c: "text-foreground" },
+              ]}
+            />
+          )}
+          {a.pools.length > 0 && (
+            <LevelList
+              title="Liquidity pools (resting stops)"
+              rows={a.pools.map((pl) => ({
+                k: pl.kind === "equal-highs" ? "Buy-side (BSL)" : "Sell-side (SSL)",
+                v: `${fmtPrice(pl.price)}  ×${pl.touches}`,
+                c: pl.kind === "equal-highs" ? "text-bull" : "text-bear",
+              }))}
+            />
+          )}
+        </div>
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function LevelList({ title, rows }: { title: string; rows: { k: string; v: string; c: string }[] }) {
+  return (
+    <section>
+      <div className="eyebrow mb-2 border-b border-border pb-2">{title}</div>
+      <ul>
+        {rows.map((r, i) => (
+          <li key={i} className="flex justify-between border-b border-border/50 py-1.5 text-sm last:border-0">
+            <span className="text-muted-foreground">{r.k}</span>
+            <span className={cn("whitespace-pre font-mono tabular-nums", r.c)}>{r.v}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function Stat({ k, v, cls }: { k: string; v: string; cls?: string }) {
+  return (
+    <div>
+      <div className="eyebrow">{k}</div>
+      <div className={cn("mt-0.5 font-mono text-lg font-medium", cls)}>{v}</div>
     </div>
   );
 }
-function Block({ title, children }: { title: string; children: React.ReactNode }) {
+
+function Reasons({ items }: { items: string[] }) {
   return (
-    <div className="panel p-4">
-      <div className="mb-2 eyebrow">
-        {title}
-      </div>
-      <ul className="list-disc space-y-1.5 pl-4 text-xs leading-relaxed marker:text-primary">{children}</ul>
-    </div>
+    <ol className="space-y-2.5">
+      {items.map((r, i) => (
+        <li key={i} className="flex gap-3 text-[13px] leading-relaxed">
+          <span className="font-mono text-[11px] text-primary">{String(i + 1).padStart(2, "0")}</span>
+          <span className="text-foreground/90">{r}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
