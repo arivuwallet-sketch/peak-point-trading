@@ -1,8 +1,8 @@
 // Canvas chart colors (the chart library draws on canvas and needs literal colors).
 export const chartTheme = {
-  bg: "#0b0e11",
+  bg: "rgba(0,0,0,0)",
   text: "#8a93a3",
-  grid: "#161b22",
+  grid: "rgba(148,163,184,0.06)",
   up: "#22c55e",
   down: "#ef4444",
   ema20: "#f5b301",

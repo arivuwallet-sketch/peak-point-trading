@@ -123,10 +123,15 @@ function Index() {
 
   return (
     <div className="min-h-screen">
-      <header className="flex flex-wrap items-center gap-4 border-b border-border px-4 py-3">
-        <div className="flex items-baseline gap-2">
-          <span className="text-xl font-bold tracking-tight text-primary">ChartSage</span>
-          <span className="font-mono text-xs text-muted-foreground">PRO CHART READER</span>
+      <header className="sticky top-0 z-30 flex flex-wrap items-center gap-4 border-b border-border bg-background/70 px-5 py-3 backdrop-blur-xl">
+        <div className="flex items-center gap-3">
+          <div className="glow-primary grid h-9 w-9 place-items-center rounded-xl bg-primary font-mono text-sm font-bold text-primary-foreground">
+            CS
+          </div>
+          <div className="leading-tight">
+            <div className="text-gradient text-lg font-bold tracking-tight">ChartSage</div>
+            <div className="eyebrow">Pro chart reader</div>
+          </div>
         </div>
         <form
           className="ml-auto flex gap-2"
@@ -139,20 +144,20 @@ function Index() {
             value={custom}
             onChange={(e) => setCustom(e.target.value)}
             placeholder="Any symbol: MSFT, TCS.NS, ADA-USD, AUDUSD=X"
-            className="w-72 rounded-md border border-input bg-secondary px-3 py-1.5 font-mono text-sm outline-none focus:border-ring"
+            className="w-72 rounded-xl border border-input bg-secondary/60 px-4 py-2 font-mono text-sm outline-none transition placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/25"
           />
-          <button className="rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground">
+          <button className="glow-primary rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 active:scale-95">
             Analyze
           </button>
         </form>
       </header>
 
-      <div className="grid gap-3 p-3 lg:grid-cols-[200px_1fr_400px]">
+      <div className="mx-auto grid max-w-[1800px] gap-4 p-4 lg:grid-cols-[210px_1fr_400px]">
         {/* Watchlist */}
-        <aside className="panel h-fit p-2">
+        <aside className="panel h-fit p-2 lg:sticky lg:top-20">
           {MARKETS.map((g) => (
             <div key={g.group} className="mb-2">
-              <div className="px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <div className="px-2 py-1 eyebrow">
                 {g.group}
               </div>
               {g.items.map(([s, n]) => (
@@ -160,8 +165,8 @@ function Index() {
                   key={s}
                   onClick={() => setSymbol(s)}
                   className={cn(
-                    "flex w-full justify-between rounded px-2 py-1 text-left text-sm hover:bg-accent",
-                    symbol === s && "bg-accent text-primary",
+                    "flex w-full justify-between rounded-lg border-l-2 border-transparent px-2.5 py-1.5 text-left text-sm transition hover:bg-accent/70",
+                    symbol === s && "border-primary bg-accent text-primary",
                   )}
                 >
                   <span>{n}</span>
@@ -176,14 +181,14 @@ function Index() {
         <main className="flex min-w-0 flex-col gap-3">
           <div className="panel flex flex-wrap items-center gap-4 px-4 py-3">
             <div>
-              <div className="text-lg font-bold">{main.data?.name ?? symbol}</div>
+              <div className="text-xl font-bold tracking-tight">{main.data?.name ?? symbol}</div>
               <div className="font-mono text-xs text-muted-foreground">
                 {symbol} · {main.data?.currency} {main.data?.type}
               </div>
             </div>
             {last && (
               <div className="font-mono">
-                <div className="text-2xl font-semibold">{fmtPrice(last.close)}</div>
+                <div className="text-3xl font-semibold tabular-nums">{fmtPrice(last.close)}</div>
                 <div className={cn("text-xs", chg >= 0 ? "text-bull" : "text-bear")}>
                   {chg >= 0 ? "+" : ""}
                   {chg.toFixed(3)}% last bar
@@ -193,16 +198,16 @@ function Index() {
             <div className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">
               <span className="live-dot h-2 w-2 rounded-full bg-bull" /> LIVE · {refresh / 1000}s
             </div>
-            <div className="ml-auto flex gap-1">
+            <div className="ml-auto flex gap-1 rounded-xl bg-secondary/60 p-1">
               {TIMEFRAMES.map((t) => (
                 <button
                   key={t}
                   onClick={() => setTf(t)}
                   className={cn(
-                    "rounded px-2.5 py-1 font-mono text-xs",
+                    "rounded-lg px-3 py-1 font-mono text-xs transition",
                     tf === t
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-muted-foreground hover:text-foreground",
+                      ? "glow-primary bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   {t}
@@ -210,7 +215,7 @@ function Index() {
               ))}
             </div>
           </div>
-          <div className="panel h-[620px] overflow-hidden">
+          <div className="panel h-[640px] overflow-hidden">
             {main.isError ? (
               <div className="flex h-full items-center justify-center p-6 text-center text-sm text-bear">
                 {(main.error as Error).message}. Check the symbol and try again.
@@ -269,7 +274,7 @@ function Index() {
                 ],
               ].map(([k, v]) => (
                 <div key={k} className="bg-card p-3">
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <div className="eyebrow">
                     {k}
                   </div>
                   <div className="font-mono text-sm">{v}</div>
@@ -309,13 +314,18 @@ function AnalysisPanel({ a, htf }: { a: ReturnType<typeof analyze>; htf: Timefra
   const groups = [...new Set(a.factors.map((f) => f.group))];
   return (
     <>
-      <div className="panel p-4">
+      <div
+        className={cn(
+          "panel relative overflow-hidden p-5",
+          a.score > 0 ? "glow-bull" : a.score < 0 ? "glow-bear" : "glow-primary",
+        )}
+      >
         <div className="flex items-start justify-between">
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+            <div className="eyebrow">
               Verdict
             </div>
-            <div className={cn("text-3xl font-bold", tone)}>{a.verdict}</div>
+            <div className={cn("text-4xl font-bold tracking-tight", tone)}>{a.verdict}</div>
             <div
               className={cn(
                 "mt-1 inline-block rounded px-2 py-0.5 font-mono text-xs font-bold",
@@ -342,9 +352,9 @@ function AnalysisPanel({ a, htf }: { a: ReturnType<typeof analyze>; htf: Timefra
             </div>
           </div>
         </div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded bg-secondary">
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
           <div
-            className={cn("h-full", a.score >= 0 ? "bg-bull" : "bg-bear")}
+            className={cn("h-full rounded-full transition-all duration-700", a.score >= 0 ? "bg-bull glow-bull" : "bg-bear glow-bear")}
             style={{ width: `${Math.min(100, a.confidence)}%` }}
           />
         </div>
@@ -413,7 +423,7 @@ function AnalysisPanel({ a, htf }: { a: ReturnType<typeof analyze>; htf: Timefra
       </Block>
 
       <div className="panel p-4">
-        <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="mb-2 eyebrow">
           Full chart reading {htf ? `· HTF ${htf}` : ""}
         </div>
         {groups.map((g) => (
@@ -490,19 +500,20 @@ function AnalysisPanel({ a, htf }: { a: ReturnType<typeof analyze>; htf: Timefra
 
 function Lvl({ k, v, cls }: { k: string; v: string; cls: string }) {
   return (
-    <div className="rounded bg-secondary p-2">
+    <div className="relative overflow-hidden rounded-lg border border-border bg-secondary/50 p-2.5 pl-3.5">
+      <span className={cn("absolute inset-y-0 left-0 w-1 bg-current", cls)} />
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{k}</div>
-      <div className={cls}>{v}</div>
+      <div className={cn("text-base font-semibold tabular-nums", cls)}>{v}</div>
     </div>
   );
 }
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="panel p-4">
-      <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+      <div className="mb-2 eyebrow">
         {title}
       </div>
-      <ul className="list-disc space-y-1.5 pl-4 text-xs leading-relaxed">{children}</ul>
+      <ul className="list-disc space-y-1.5 pl-4 text-xs leading-relaxed marker:text-primary">{children}</ul>
     </div>
   );
 }
