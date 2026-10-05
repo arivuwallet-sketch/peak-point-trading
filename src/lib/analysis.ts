@@ -34,6 +34,8 @@ import {
 } from "./smc";
 
 // Back-compat re-exports (older imports of indicator math from this module keep working).
+import { priceActionPlaybook, type Playbook } from "./playbook";
+export type { Playbook } from "./playbook";
 export { ema, sma, rsi, atr, macd, bollinger, adx } from "./indicators";
 
 /* ---------------- Structure ---------------- */
@@ -150,6 +152,7 @@ export type Analysis = {
   };
   markers: { time: number; position: "aboveBar" | "belowBar"; text: string; bias: Bias }[];
   zones: Zone[];
+  playbook: Playbook;
 };
 
 export function trendBias(cs: Candle[]): Bias {
@@ -1116,6 +1119,13 @@ export function analyze(cs: Candle[], htfBias: Bias | null): Analysis {
       );
   }
 
+  /* ----- Price-action playbook: stage → value → trigger → exits ----- */
+  const pb = priceActionPlaybook({
+    cs, atr: a, e20, e50, e200, highs, lows, supports, resist, htfBias, atrPct, fmt,
+  });
+  factors.push(...pb.factors);
+  const playbook = pb.playbook;
+
   /* ----- Score, calibrated confidence, grade ----- */
   const score = factors.reduce(
     (s, f) => s + (f.bias === "bull" ? f.weight : f.bias === "bear" ? -f.weight : 0),
@@ -1147,7 +1157,9 @@ export function analyze(cs: Candle[], htfBias: Bias | null): Analysis {
   const strong = Math.abs(score) >= 3 && confidence >= 40;
 
   // Entry: market if not extended, else pullback into value (EMA20 / VWAP / nearest level / POC)
-  const extended = long ? R >= 70 || price - e20[n] > 2 * A : R <= 30 || e20[n] - price > 2 * A;
+  const extended =
+    playbook.stretch.overstretched ||
+    (long ? R >= 70 || price - e20[n] > 2 * A : R <= 30 || e20[n] - price > 2 * A);
   const anchors = long
     ? [ns?.price, e20[n], vwapNow, profile?.poc].filter((x): x is number => x != null && x < price)
     : [nr?.price, e20[n], vwapNow, profile?.poc].filter((x): x is number => x != null && x > price);
@@ -1191,9 +1203,9 @@ export function analyze(cs: Candle[], htfBias: Bias | null): Analysis {
           .map((l) => l.price),
         nr && nr.price > entry ? nr.price : -Infinity,
       );
-  let stop = Number.isFinite(structStop) ? structStop - dir * 0.5 * A : entry - dir * 1.5 * A;
+  let stop = Number.isFinite(structStop) ? structStop - dir * 1 * A : entry - dir * 1.5 * A;
   let stopReason = Number.isFinite(structStop)
-    ? `Anchored to the protective swing ${long ? "low" : "high"} at ${fmt(structStop)} plus a 0.5 ATR buffer to avoid liquidity sweeps.`
+    ? `Anchored to the protective swing ${long ? "low" : "high"} at ${fmt(structStop)} plus a 1 ATR buffer — stops parked just beyond an obvious level are exactly where stop hunts happen.`
     : "No protective swing nearby — volatility stop at 1.5 ATR.";
   const dist = Math.abs(entry - stop);
   if (dist < A) {
@@ -1293,6 +1305,9 @@ export function analyze(cs: Candle[], htfBias: Bias | null): Analysis {
   const entryReason = supporting.slice(0, 5).map((f) => `${f.label}: ${f.detail}`);
   if (opposing2.length)
     entryReason.push(`Against the trade: ${opposing2[0].label} — ${opposing2[0].detail}`);
+  for (const su of [playbook.maee, playbook.mbee])
+    if (su.status !== "ABSENT" && su.direction === (long ? "LONG" : "SHORT"))
+      entryReason.unshift(`${su.name} ${su.status.toLowerCase()}: ${su.note}`);
   if (canPullback)
     entryReason.unshift(
       `Price is extended from value — the disciplined entry is a pullback into ${fmt(entryZone[0])}–${fmt(entryZone[1])} (confluence of ${long ? "support, EMA20/VWAP/POC" : "resistance, EMA20/VWAP/POC"}), not chasing.`,
@@ -1319,6 +1334,7 @@ export function analyze(cs: Candle[], htfBias: Bias | null): Analysis {
     stopReason,
     tpReason,
     exitRules: [
+      `Management mode — ${playbook.management.mode}: ${playbook.management.detail}`,
       `Real-time trailing exit (Chandelier 3×ATR): ${fmt(trailingStop)} — exit any remaining position on a close ${long ? "below" : "above"} it.`,
       `After TP1, move stop to breakeven (${fmt(entry)}) — a stopped trade then costs nothing.`,
       `After TP2, trail the stop below each new swing ${long ? "low" : "high"} instead of the Chandelier.`,
@@ -1381,6 +1397,7 @@ export function analyze(cs: Candle[], htfBias: Bias | null): Analysis {
       .filter((z) => Math.abs((z.top + z.bottom) / 2 - price) < 6 * A)
       .sort((x, y) => y.i - x.i)
       .slice(0, 8),
+    playbook,
   };
 }
 

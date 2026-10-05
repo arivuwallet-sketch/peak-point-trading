@@ -6,6 +6,7 @@ import { getCandles, TIMEFRAMES, type Timeframe } from "@/lib/market.functions";
 import { analyze, fmtPrice, trendBias, type Bias } from "@/lib/analysis";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PlaybookPanel } from "@/components/PlaybookPanel";
 
 const PriceChart = lazy(() =>
   import("@/components/PriceChart").then((m) => ({ default: m.PriceChart })),
@@ -457,17 +458,22 @@ function Details({ a, htf }: { a: A; htf: Timeframe | null }) {
     ["Location", `${a.premium.zone} · ${a.premium.pct.toFixed(0)}%`],
   ];
   return (
-    <Tabs defaultValue="reading" className="panel p-5">
+    <Tabs defaultValue="playbook" className="panel p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="serif text-3xl">
           The reading{htf && <span className="text-muted-foreground"> · HTF {htf}</span>}
         </h2>
         <TabsList className="bg-secondary p-0.5">
+          <TabsTrigger value="playbook" className="text-xs">Playbook</TabsTrigger>
           <TabsTrigger value="reading" className="text-xs">Analysis</TabsTrigger>
           <TabsTrigger value="indicators" className="text-xs">Indicators</TabsTrigger>
           <TabsTrigger value="levels" className="text-xs">Levels</TabsTrigger>
         </TabsList>
       </div>
+
+      <TabsContent value="playbook">
+        <PlaybookPanel pb={a.playbook} />
+      </TabsContent>
 
       <TabsContent value="reading">
         <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
