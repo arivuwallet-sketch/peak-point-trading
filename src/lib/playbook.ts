@@ -238,10 +238,13 @@ export function priceActionPlaybook(ctx: Ctx): { playbook: Playbook; factors: Fa
   if (overstretched) add("Overstretched — don't chase", stretch.detail, "neutral", 0);
 
   /* ---------- 4. Reading the last candle without memorising patterns ---------- */
-  const k = cs[n];
+  // A freshly opened live bar has almost no range — read the last completed candle instead.
+  const liveAvg = avg(cs.slice(-11, -1).map((x) => x.high - x.low));
+  const ci = cs[n].high - cs[n].low < 0.15 * liveAvg ? n - 1 : n;
+  const k = cs[ci];
   const rng = k.high - k.low || 1e-9;
   const closeLoc = (k.close - k.low) / rng;
-  const prevAvg = avg(cs.slice(-11, -1).map((x) => x.high - x.low)) || rng;
+  const prevAvg = avg(cs.slice(ci - 10, ci).map((x) => x.high - x.low)) || rng;
   const relSize = rng / prevAvg;
   const control: Playbook["candle"]["control"] = closeLoc >= 0.66 ? "Buyers" : closeLoc <= 0.34 ? "Sellers" : "Balanced";
   const candle = {
@@ -251,7 +254,7 @@ export function priceActionPlaybook(ctx: Ctx): { playbook: Playbook; factors: Fa
     detail: `Closed at ${(closeLoc * 100).toFixed(0)}% of its range → ${control === "Balanced" ? "nobody" : control.toLowerCase()} in control. Size ${relSize.toFixed(1)}× the prior 10 candles → ${relSize >= 2 ? "real conviction behind the move" : relSize >= 1.3 ? "some conviction" : "no special conviction"}.`,
   };
   if (control !== "Balanced")
-    add("Who's in control (last candle)", candle.detail, control === "Buyers" ? "bull" : "bear", relSize >= 2 ? 1 : 0.4);
+    add(`Who's in control (${ci === n ? "last" : "last closed"} candle)`, candle.detail, control === "Buyers" ? "bull" : "bear", relSize >= 2 ? 1 : 0.4);
 
   /* ---------- 5. Entry trigger (last 2 candles) ---------- */
   let trigger: Playbook["trigger"] = null;
