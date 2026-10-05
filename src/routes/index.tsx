@@ -504,7 +504,7 @@ function Details({ a, htf }: { a: A; htf: Timeframe | null }) {
           {ind.map(([k, v]) => (
             <div key={k} className="bg-card p-4">
               <div className="eyebrow">{k}</div>
-              <div className="mt-1 font-mono text-base capitalize">{v}</div>
+              <div className="mt-1 font-mono text-base">{v}</div>
             </div>
           ))}
         </div>
