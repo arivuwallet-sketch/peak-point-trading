@@ -73,7 +73,7 @@ function SetupCard({ s }: { s: PlaybookSetup }) {
 }
 
 export function PlaybookPanel({ pb }: { pb: Playbook }) {
-  const tiles: { k: string; v: string; c?: string }[] = [
+  const tiles: { k: string; v: string; c?: string | undefined }[] = [
     { k: "Market stage", v: pb.stage.name, c: tone(pb.stage.bias) },
     { k: "Trend quality", v: pb.trend.type === "None" ? "No trend" : `${pb.trend.type}${pb.trend.retrace != null ? ` · ${(pb.trend.retrace * 100).toFixed(0)}% pullback` : ""}` },
     { k: "Distance from 50 MA", v: `${pb.stretch.atr >= 0 ? "+" : ""}${pb.stretch.atr.toFixed(1)} ATR`, c: pb.stretch.overstretched ? "text-bear" : undefined },
