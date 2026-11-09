@@ -177,14 +177,14 @@
 @utility serif {
   font-family: var(--font-display);
   font-weight: 400;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 @utility eyebrow {
   font-family: var(--font-mono);
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.16em;
+  letter-spacing: 0;
   color: var(--color-muted-foreground);
 }
 
@@ -211,4 +211,12 @@
 @keyframes live-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }

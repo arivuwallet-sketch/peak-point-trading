@@ -40,6 +40,18 @@ const ramp = (n: number, slope: number, start = 100) =>
   Array.from({ length: n }, (_, i) => start + i * slope + 0.3 * Math.sin(i / 3));
 
 describe("indicator math", () => {
+  it("StochRSI waits for complete normalization and smoothing windows", () => {
+    const result = stochRsi(ramp(80, 0.2));
+    expect(result.k.findIndex(Number.isFinite)).toBe(28);
+    expect(result.d.findIndex(Number.isFinite)).toBe(30);
+    const values = rsi(ramp(80, 0.2));
+    const raw = [26, 27, 28].map((i) => {
+      const window = values.slice(i - 13, i + 1);
+      const low = Math.min(...window), high = Math.max(...window);
+      return high === low ? 50 : 100 * (values[i] - low) / (high - low);
+    });
+    expect(result.k[28]).toBeCloseTo(raw.reduce((a, b) => a + b, 0) / 3, 10);
+  });
   it("RSI is bounded and hits 100 on a monotonic rise", () => {
     const r = rsi(ramp(60, 1));
     const tail = r.slice(-20);
@@ -103,6 +115,15 @@ describe("indicator math", () => {
 });
 
 describe("structure & smc", () => {
+  it("includes equal-high pivots on the 250-bar lookback boundary", () => {
+    const cs = mk(Array.from({ length: 250 }, () => 100));
+    const pools = liquidityPools(cs, [
+      { i: 0, time: cs[0].time, price: 110, kind: "H" },
+      { i: 5, time: cs[5].time, price: 110, kind: "H" },
+    ], 0.5);
+    expect(pools).toHaveLength(1);
+    expect(pools[0].price).toBe(110);
+  });
   it("pivots find alternating extremes in a zigzag", () => {
     const cs = mk(zigzag(6, 10));
     const pv = pivots(cs, 3, 3);

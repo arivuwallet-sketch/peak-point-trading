@@ -69,7 +69,7 @@ export function stochRsi(c: number[], rsiP = 14, stochP = 14, kP = 3, dP = 3) {
   const r = rsi(c, rsiP);
   const raw: number[] = [];
   for (let i = 0; i < c.length; i++) {
-    if (i < rsiP + stochP - 1) {
+    if (i < rsiP + stochP - 2) {
       raw.push(NaN);
       continue;
     }
@@ -78,14 +78,15 @@ export function stochRsi(c: number[], rsiP = 14, stochP = 14, kP = 3, dP = 3) {
       hi = Math.max(...win);
     raw.push(hi === lo ? 50 : (100 * (r[i] - lo)) / (hi - lo));
   }
-  const k = sma(
-    raw.map((x) => (Number.isNaN(x) ? 0 : x)),
-    kP,
-  ).map((x, i) => (Number.isNaN(raw[i]) ? NaN : x));
-  const d = sma(
-    k.map((x) => (Number.isNaN(x) ? 0 : x)),
-    dP,
-  ).map((x, i) => (Number.isNaN(k[i]) ? NaN : x));
+  // Smooth only full valid windows; zero-padding warm-up values biases early signals.
+  const smooth = (values: number[], period: number) => values.map((_, i) => {
+    const window = values.slice(Math.max(0, i - period + 1), i + 1);
+    return window.length === period && window.every(Number.isFinite)
+      ? window.reduce((sum, value) => sum + value, 0) / period
+      : NaN;
+  });
+  const k = smooth(raw, kP);
+  const d = smooth(k, dP);
   return { k, d };
 }
 
