@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { BtResult } from "@/lib/backtest";
 import type { Candle } from "@/lib/market.functions";
 
-type State = { status: "idle" | "running" | "done" | "error"; result: BtResult | null; error?: string };
+type State = { status: "idle" | "running" | "done" | "error"; result: BtResult | null; error?: string | undefined };
 
 /**
  * Runs the walk-forward track record off the main thread. Re-runs only when a

@@ -2,7 +2,7 @@ import type { BtResult } from "@/lib/backtest";
 import { fmtPrice } from "@/lib/analysis";
 import { cn } from "@/lib/utils";
 
-type Props = { status: "idle" | "running" | "done" | "error"; result: BtResult | null; error?: string; tf: string };
+type Props = { status: "idle" | "running" | "done" | "error"; result: BtResult | null; error?: string | undefined; tf: string };
 
 export function TrackRecord({ status, result, error, tf }: Props) {
   if (status === "error") {

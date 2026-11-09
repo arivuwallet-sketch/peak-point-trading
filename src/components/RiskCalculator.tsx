@@ -15,7 +15,7 @@ function fmtUnits(u: number) {
   return u >= 100 ? u.toFixed(0) : u >= 1 ? u.toFixed(2) : u.toPrecision(3);
 }
 
-export function RiskCalculator({ entry, stop, tp1, tp2, currency }: { entry: number; stop: number; tp1: number; tp2: number; currency?: string }) {
+export function RiskCalculator({ entry, stop, tp1, tp2, currency }: { entry: number; stop: number; tp1: number; tp2: number; currency?: string | undefined }) {
   const [account, setAccount] = useState("10000");
   const [risk, setRisk] = useState("1");
 

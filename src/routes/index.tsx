@@ -339,7 +339,7 @@ function ChartLoading() {
 
 type A = ReturnType<typeof analyze>;
 
-function TradeTicket({ a, currency }: { a: A; currency?: string }) {
+function TradeTicket({ a, currency }: { a: A; currency?: string | undefined }) {
   const p = a.plan;
   const long = p.direction === "LONG";
   const tone = a.verdict.includes("BUY") ? "bull" : a.verdict.includes("SELL") ? "bear" : "neutral";
