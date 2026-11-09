@@ -7,6 +7,9 @@ import { analyze, fmtPrice, trendBias, type Bias } from "@/lib/analysis";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlaybookPanel } from "@/components/PlaybookPanel";
+import { TrackRecord } from "@/components/TrackRecord";
+import { RiskCalculator } from "@/components/RiskCalculator";
+import { useTrackRecord } from "@/hooks/use-track-record";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Search, AlertCircle } from "lucide-react";
 
@@ -125,6 +128,8 @@ function Index() {
     refetchInterval: 120_000,
     retry: 1,
   });
+
+  const record = useTrackRecord(main.data?.candles, `${symbol}:${tf}`);
 
   const analysis = useMemo(() => {
     if (!main.data || main.data.candles.length < 60) return null;
@@ -307,12 +312,12 @@ function Index() {
             )}
           </div>
 
-          {analysis && <Details a={analysis} htf={htfTf} />}
+          {analysis && <Details a={analysis} htf={htfTf} tf={tf} record={record} />}
         </main>
 
         <aside className="flex flex-col gap-5 xl:sticky xl:top-[124px] xl:h-fit">
           {analysis ? (
-            <TradeTicket a={analysis} />
+            <TradeTicket a={analysis} currency={main.data?.currency} />
           ) : (
             <div className="panel p-6 text-sm text-muted-foreground">
               The trade plan appears once data loads.
@@ -334,7 +339,7 @@ function ChartLoading() {
 
 type A = ReturnType<typeof analyze>;
 
-function TradeTicket({ a }: { a: A }) {
+function TradeTicket({ a, currency }: { a: A; currency?: string }) {
   const p = a.plan;
   const long = p.direction === "LONG";
   const tone = a.verdict.includes("BUY") ? "bull" : a.verdict.includes("SELL") ? "bear" : "neutral";
@@ -476,14 +481,17 @@ function TradeTicket({ a }: { a: A }) {
           </TabsContent>
           <TabsContent value="tp"><Reasons items={p.tpReason} /></TabsContent>
           <TabsContent value="exit"><Reasons items={p.exitRules} /></TabsContent>
-          <TabsContent value="size"><Reasons items={[p.sizingNote]} /></TabsContent>
+          <TabsContent value="size">
+            <RiskCalculator entry={p.entry} stop={p.stop} tp1={p.tp1} tp2={p.tp2} currency={currency} />
+            <div className="mt-4 border-t border-border pt-3"><Reasons items={[p.sizingNote]} /></div>
+          </TabsContent>
         </Tabs>
       </div>
     </>
   );
 }
 
-function Details({ a, htf }: { a: A; htf: Timeframe | null }) {
+function Details({ a, htf, tf, record }: { a: A; htf: Timeframe | null; tf: Timeframe; record: ReturnType<typeof useTrackRecord> }) {
   const groups = [...new Set(a.factors.map((f) => f.group))];
   const ind: [string, string][] = [
     ["RSI 14", a.indicators.rsi.toFixed(1)],
@@ -521,8 +529,13 @@ function Details({ a, htf }: { a: A; htf: Timeframe | null }) {
           <TabsTrigger value="reading" className="text-xs">Analysis</TabsTrigger>
           <TabsTrigger value="indicators" className="text-xs">Indicators</TabsTrigger>
           <TabsTrigger value="levels" className="text-xs">Levels</TabsTrigger>
+          <TabsTrigger value="record" className="text-xs">Track record</TabsTrigger>
         </TabsList>
       </div>
+
+      <TabsContent value="record">
+        <TrackRecord status={record.status} result={record.result} error={record.error} tf={tf} />
+      </TabsContent>
 
       <TabsContent value="playbook">
         <PlaybookPanel pb={a.playbook} />
