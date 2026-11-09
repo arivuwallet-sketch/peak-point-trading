@@ -423,6 +423,13 @@ function TradeTicket({ a }: { a: A }) {
             {long ? "▲ LONG" : "▼ SHORT"}
           </span>
         </div>
+        {p.status !== "ACTIVE SETUP" && (
+          <p role="status" className="mb-3 border-l-2 border-primary bg-primary/10 px-3 py-2 text-xs text-foreground">
+            {p.status === "NO TRADE"
+              ? "No trade right now. These prices are for planning only — don't place them as orders."
+              : "Wait for confirmation. Don't enter until the entry conditions are met."}
+          </p>
+        )}
         <ol className="relative">
           <span className="absolute bottom-3 left-[5px] top-3 w-px bg-border" />
           {ladder.map((l) => (
