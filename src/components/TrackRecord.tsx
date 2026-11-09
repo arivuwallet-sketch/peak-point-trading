@@ -94,7 +94,7 @@ export function TrackRecord({ status, result, error, tf }: Props) {
                   <td className="tabular-nums">{fmtPrice(t.entry)}</td>
                   <td className="tabular-nums">{fmtPrice(t.stop)}</td>
                   <td className="text-muted-foreground">
-                    {{ stop: "Stopped out", "tp1-be": "Target 1, rest at breakeven", tp2: "Target 2 hit", time: `Closed after ${t.bars} bars` }[t.outcome]}
+                    {{ stop: "Stopped out", "tp1-be": "Target 1, rest at breakeven", tp2: "Target 2 hit", target: "Target hit", time: `Closed after ${t.bars} bars` }[t.outcome]}
                   </td>
                   <td className={cn("text-right tabular-nums", t.r >= 0 ? "text-bull" : "text-bear")}>
                     {t.r >= 0 ? "+" : ""}

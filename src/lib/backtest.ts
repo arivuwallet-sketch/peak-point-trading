@@ -199,7 +199,7 @@ function run(cs: Candle[], planAt: PlanAt, opts: BtOptions): BtResult {
 }
 
 function summarise(trades: BtTrade[], signals: number, unfilled: number, testedBars: number): BtResult {
-  const wins = trades.filter((t) => t.r > 0.05 * 0 + 1e-9 && t.r > 0.02);
+  const wins = trades.filter((t) => t.r > 0.02);
   const gross = trades.reduce((s, t) => s + Math.max(0, t.r), 0);
   const loss = trades.reduce((s, t) => s + Math.max(0, -t.r), 0);
   let eq = 0;
