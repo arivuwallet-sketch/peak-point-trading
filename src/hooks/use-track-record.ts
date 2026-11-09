@@ -31,6 +31,11 @@ export function useTrackRecord(candles: Candle[] | undefined, market: string) {
     };
   }, []);
 
+  // Clear stale numbers when switching market/timeframe (declared first so it runs first).
+  useEffect(() => {
+    setState({ status: "idle", result: null });
+  }, [market]);
+
   useEffect(() => {
     const cs = candlesRef.current;
     if (!closedKey || !cs || !workerRef.current) return;
@@ -38,11 +43,6 @@ export function useTrackRecord(candles: Candle[] | undefined, market: string) {
     setState((s) => ({ status: "running", result: s.result }));
     workerRef.current.postMessage({ id, candles: cs });
   }, [closedKey]);
-
-  // Clear stale numbers when switching market/timeframe.
-  useEffect(() => {
-    setState({ status: "idle", result: null });
-  }, [market]);
 
   return state;
 }
