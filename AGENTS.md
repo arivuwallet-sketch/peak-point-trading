@@ -11,3 +11,4 @@
 - Numeric indicator code relies on index access; tsconfig has noUncheckedIndexedAccess off — why: per-index guards across indicator math add noise without safety benefit.
 - Market data comes from a server function proxying Yahoo Finance chart API; analysis runs client-side in src/lib/analysis.ts — why: one keyless source covers all asset classes and analysis stays deterministic.
 - Discretionary price-action reading (market stage, MAEE/MBEE setups, trend quality, exhaustion, trade-management mode) lives in src/lib/playbook.ts and feeds analyze() as factors plus a `playbook` object — why: keeps the rule-based playbook separate from indicator/SMC math and testable on its own.
+- Walk-forward track record (src/lib/backtest.ts) replays analyze() bar by bar with no look-ahead, in a Web Worker re-run only when a candle closes — why: honest, per-market evidence of the engine's edge without blocking the UI on live ticks.
