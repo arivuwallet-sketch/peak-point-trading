@@ -7,6 +7,7 @@ import { chartTheme as T } from "@/lib/chart-theme";
 
 export function PriceChart({ candles, analysis }: { candles: Candle[]; analysis: Analysis }) {
   const ref = useRef<HTMLDivElement>(null);
+  const visibleRange = useRef<{ from: number; to: number } | null>(null);
 
   useEffect(() => {
     let disposed = false;
@@ -172,7 +173,7 @@ export function PriceChart({ candles, analysis }: { candles: Candle[]; analysis:
             size: m.bias === "neutral" ? 0.4 : 1,
           })),
       );
-      chart.timeScale().setVisibleLogicalRange({
+      chart.timeScale().setVisibleLogicalRange(visibleRange.current ?? {
         from: Math.max(0, candles.length - 150),
         to: candles.length + 8,
       });
@@ -181,6 +182,7 @@ export function PriceChart({ candles, analysis }: { candles: Candle[]; analysis:
       );
       ro.observe(el);
       cleanup = () => {
+        visibleRange.current = chart.timeScale().getVisibleLogicalRange();
         ro.disconnect();
         chart.remove();
       };
@@ -191,5 +193,12 @@ export function PriceChart({ candles, analysis }: { candles: Candle[]; analysis:
     };
   }, [candles, analysis]);
 
-  return <div ref={ref} className="h-full w-full" />;
+  return (
+    <div
+      ref={ref}
+      role="img"
+      aria-label={`Price chart with ${candles.length} candles, entry ${analysis.plan.entry}, stop ${analysis.plan.stop}, and first target ${analysis.plan.tp1}`}
+      className="h-full w-full"
+    />
+  );
 }

@@ -177,7 +177,7 @@ export function liquiditySweeps(cs: Candle[], pv: Pivot[]): Sweep[] {
  */
 export function liquidityPools(cs: Candle[], pv: Pivot[], tol: number): Pool[] {
   const out: Pool[] = [];
-  const recent = pv.filter((p) => p.i > cs.length - 250);
+  const recent = pv.filter((p) => p.i >= Math.max(0, cs.length - 250));
   const highs = recent.filter((p) => p.kind === "H");
   const lows = recent.filter((p) => p.kind === "L");
   const scan = (arr: Pivot[], kind: Pool["kind"]) => {

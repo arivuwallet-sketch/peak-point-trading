@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { ClientOnly, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useMemo, useState } from "react";
@@ -7,6 +7,8 @@ import { analyze, fmtPrice, trendBias, type Bias } from "@/lib/analysis";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlaybookPanel } from "@/components/PlaybookPanel";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Search, AlertCircle } from "lucide-react";
 
 const PriceChart = lazy(() =>
   import("@/components/PriceChart").then((m) => ({ default: m.PriceChart })),
@@ -96,6 +98,13 @@ function Index() {
   const [tf, setTf] = useState<Timeframe>("1h");
   const [custom, setCustom] = useState("");
   const [group, setGroup] = useState("Crypto");
+  const [searchError, setSearchError] = useState("");
+  const selectSymbol = (value: string) => {
+    setSymbol(value);
+    const category = MARKETS.find((market) => market.items.some(([ticker]) => ticker === value));
+    if (category) setGroup(category.group);
+    setSearchError("");
+  };
   const fetchCandles = useServerFn(getCandles);
   const refresh = tf === "1m" || tf === "5m" ? 10_000 : 20_000;
 
@@ -108,7 +117,10 @@ function Index() {
   const htfTf = HTF[tf];
   const htf = useQuery({
     queryKey: ["candles", symbol, htfTf],
-    queryFn: () => fetchCandles({ data: { symbol, tf: htfTf! } }),
+    queryFn: () => {
+      if (!htfTf) throw new Error("No higher timeframe for weekly charts");
+      return fetchCandles({ data: { symbol, tf: htfTf } });
+    },
     enabled: !!htfTf,
     refetchInterval: 120_000,
     retry: 1,
@@ -122,7 +134,7 @@ function Index() {
 
   const last = main.data?.candles.at(-1);
   const prev = main.data?.candles.at(-2);
-  const chg = last && prev ? ((last.close - prev.close) / prev.close) * 100 : 0;
+  const chg = last && prev && prev.close !== 0 ? ((last.close - prev.close) / prev.close) * 100 : 0;
 
   const groupItems = MARKETS.find((g) => g.group === group)?.items ?? [];
   const known = MARKETS.flatMap((g) => g.items).find(([s]) => s === symbol);
@@ -136,10 +148,12 @@ function Index() {
             <span className="serif text-3xl italic leading-none">ChartSage</span>
             <span className="h-1.5 w-1.5 translate-y-[-2px] rounded-full bg-primary" />
           </div>
-          <nav className="flex items-center gap-1 overflow-x-auto">
+          <nav aria-label="Market categories" className="flex min-w-0 max-w-full items-center gap-1 overflow-x-auto">
             {MARKETS.map((g) => (
-              <button
+              <Button
                 key={g.group}
+                variant="ghost"
+                aria-pressed={group === g.group}
                 onClick={() => setGroup(g.group)}
                 className={cn(
                   "rounded-full px-3.5 py-1.5 text-sm font-medium transition",
@@ -149,34 +163,46 @@ function Index() {
                 )}
               >
                 {g.group}
-              </button>
+              </Button>
             ))}
           </nav>
           <form
-            className="ml-auto flex items-center gap-2 rounded-full border border-input bg-secondary py-1 pl-4 pr-1 transition focus-within:border-ring"
+            className="ml-auto flex w-full min-w-0 items-center gap-2 rounded-md border border-input bg-secondary py-1 pl-3 pr-1 transition focus-within:border-ring sm:w-auto"
             onSubmit={(e) => {
               e.preventDefault();
-              if (custom.trim()) setSymbol(custom.trim().toUpperCase());
+              const value = custom.trim().toUpperCase();
+              if (!/^[A-Z0-9.=^\-]{1,24}$/.test(value)) {
+                setSearchError("Enter a valid market symbol, such as AAPL or EURUSD=X.");
+                return;
+              }
+              selectSymbol(value);
             }}
           >
             <input
+              aria-label="Market symbol"
+              aria-invalid={!!searchError}
+              aria-describedby={searchError ? "search-error" : undefined}
+              maxLength={24}
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
-              placeholder="Search any symbol — MSFT, TCS.NS, AUDUSD=X"
-              className="w-64 bg-transparent font-mono text-xs outline-none placeholder:text-muted-foreground/70"
+              placeholder="Symbol: MSFT, TCS.NS, EURUSD=X"
+              className="w-full min-w-0 bg-transparent sm:w-60 font-mono text-xs outline-none placeholder:text-muted-foreground/70"
             />
-            <button className="rounded-full bg-primary px-4 py-1.5 text-xs font-bold text-primary-foreground transition hover:brightness-105 active:scale-95">
-              Read chart
-            </button>
+            <Button type="submit" size="sm" className="shrink-0">
+              <Search aria-hidden="true" /> Read chart
+            </Button>
           </form>
         </div>
+        {searchError && <p id="search-error" role="alert" className="mx-auto max-w-[1680px] px-5 pb-3 text-sm text-bear">{searchError}</p>}
         {/* Instrument strip */}
         <div className="border-t border-border">
           <div className="mx-auto flex max-w-[1680px] gap-2 overflow-x-auto px-5 py-2">
             {groupItems.map(([s, n]) => (
-              <button
+              <Button
                 key={s}
-                onClick={() => setSymbol(s)}
+                variant="ghost"
+                aria-pressed={symbol === s}
+                onClick={() => selectSymbol(s)}
                 className={cn(
                   "flex shrink-0 items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition",
                   symbol === s
@@ -186,7 +212,7 @@ function Index() {
               >
                 <span className="font-semibold">{n}</span>
                 <span className="font-mono text-[10px] opacity-70">{s}</span>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -200,16 +226,17 @@ function Index() {
               <div className="eyebrow mb-1">
                 {main.data?.type ?? "Market"} · {symbol}
               </div>
-              <h1 className="serif truncate text-5xl leading-none">
+              <h1 className="serif truncate text-4xl leading-none sm:text-5xl">
                 {known?.[1] ?? main.data?.name ?? symbol}
               </h1>
             </div>
             {last && (
-              <div className="flex items-end gap-3">
-                <div className="font-mono text-4xl font-medium leading-none tabular-nums">
+              <div className="flex min-w-0 flex-wrap items-end gap-3">
+                <div className="font-mono text-3xl font-medium leading-none tabular-nums sm:text-4xl">
                   {fmtPrice(last.close)}
                 </div>
                 <span
+                  title={`Change versus the previous ${tf} candle close`}
                   className={cn(
                     "rounded-full px-2.5 py-1 font-mono text-xs font-semibold",
                     chg >= 0 ? "bg-bull/15 text-bull" : "bg-bear/15 text-bear",
@@ -223,35 +250,49 @@ function Index() {
                 </span>
               </div>
             )}
-            <div className="ml-auto flex items-center gap-4">
+            <div className="flex w-full flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
-                <span className="live-dot h-1.5 w-1.5 rounded-full bg-bull" />
-                Live · {refresh / 1000}s
+                <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", main.isError ? "bg-bear" : main.isFetching ? "live-dot bg-primary" : "bg-bull")} />
+                {main.isError ? "Refresh failed" : main.isFetching ? "Updating…" : `Auto · ${refresh / 1000}s`}
               </div>
-              <div className="flex rounded-lg border border-border p-0.5">
+              <div className="flex max-w-full overflow-x-auto rounded-md border border-border p-0.5">
                 {TIMEFRAMES.map((t) => (
-                  <button
+                  <Button
                     key={t}
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`${t} timeframe`}
+                    aria-pressed={tf === t}
                     onClick={() => setTf(t)}
                     className={cn(
-                      "rounded-md px-3 py-1 font-mono text-xs transition",
+                      "h-8 shrink-0 rounded px-2.5 py-1 font-mono text-xs transition",
                       tf === t
                         ? "bg-primary font-semibold text-primary-foreground"
                         : "text-muted-foreground hover:bg-accent hover:text-foreground",
                     )}
                   >
                     {t}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 font-mono text-[10px] text-muted-foreground">
+            <span>Yahoo Finance · may be delayed{last ? ` · Bar ${new Date(last.time * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC` : ""}</span>
+            <Button variant="ghost" size="sm" disabled={main.isFetching} onClick={() => { void main.refetch(); if (htfTf) void htf.refetch(); }} aria-label="Refresh market data">
+              <RefreshCw className={cn(main.isFetching && "animate-spin")} /> Refresh
+            </Button>
+          </div>
+          {main.isError && main.data && <div role="alert" className="flex items-center gap-2 border-l-2 border-bear bg-bear/10 p-3 text-xs text-bear"><AlertCircle className="size-4 shrink-0" /> Refresh failed. Showing the last successful reading; levels may be stale.</div>}
+          {htfTf && htf.isError && <p role="status" className="text-xs text-muted-foreground">Higher-timeframe data is unavailable. Multi-timeframe confirmation is incomplete.</p>}
           {/* Chart */}
-          <div className="panel h-[600px] overflow-hidden">
-            {main.isError ? (
-              <div className="flex h-full items-center justify-center p-6 text-center text-sm text-bear">
-                {(main.error as Error).message}. Check the symbol and try again.
+          <div className="panel h-[460px] overflow-hidden sm:h-[600px]">
+            {main.isError && !main.data ? (
+              <div role="alert" className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center text-sm text-bear">
+                <AlertCircle className="size-7" />
+                <p>{main.error.message}. Check the symbol and try again.</p>
+                <Button variant="outline" onClick={() => void main.refetch()}>Try again</Button>
               </div>
             ) : !analysis || !main.data ? (
               <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -260,9 +301,9 @@ function Index() {
                 </span>
               </div>
             ) : (
-              <Suspense fallback={null}>
-                <PriceChart candles={main.data.candles} analysis={analysis} />
-              </Suspense>
+              <ClientOnly fallback={<ChartLoading />}><Suspense fallback={<ChartLoading />}>
+                <PriceChart key={`${symbol}:${tf}`} candles={main.data.candles} analysis={analysis} />
+              </Suspense></ClientOnly>
             )}
           </div>
 
@@ -285,6 +326,10 @@ function Index() {
       </footer>
     </div>
   );
+}
+
+function ChartLoading() {
+  return <div role="status" className="flex h-full items-center justify-center text-sm text-muted-foreground">Loading chart…</div>;
 }
 
 type A = ReturnType<typeof analyze>;
@@ -340,7 +385,7 @@ function TradeTicket({ a }: { a: A }) {
           </div>
           <div className="mt-5 grid grid-cols-3 gap-3 border-t border-border pt-4">
             <Stat k="Confluence" v={`${a.score > 0 ? "+" : ""}${a.score.toFixed(1)}`} />
-            <Stat k="Confidence" v={`${a.confidence}%`} />
+            <Stat k="Signal strength" v={`${a.confidence}%`} />
             <Stat
               k="Status"
               v={p.status === "ACTIVE SETUP" ? "Active" : p.status === "NO TRADE" ? "No trade" : "Wait"}
@@ -353,6 +398,7 @@ function TradeTicket({ a }: { a: A }) {
               }
             />
           </div>
+          <p className="mt-3 text-[10px] text-muted-foreground">Rule-based score, not a probability of profit.</p>
           <div className="mt-4 h-1 overflow-hidden rounded-full bg-secondary">
             <div
               className={cn(
@@ -377,6 +423,13 @@ function TradeTicket({ a }: { a: A }) {
             {long ? "▲ LONG" : "▼ SHORT"}
           </span>
         </div>
+        {p.status !== "ACTIVE SETUP" && (
+          <p role="status" className="mb-3 border-l-2 border-primary bg-primary/10 px-3 py-2 text-xs text-foreground">
+            {p.status === "NO TRADE"
+              ? "No trade right now. These prices are for planning only — don't place them as orders."
+              : "Wait for confirmation. Don't enter until the entry conditions are met."}
+          </p>
+        )}
         <ol className="relative">
           <span className="absolute bottom-3 left-[5px] top-3 w-px bg-border" />
           {ladder.map((l) => (
@@ -463,7 +516,7 @@ function Details({ a, htf }: { a: A; htf: Timeframe | null }) {
         <h2 className="serif text-3xl">
           The reading{htf && <span className="text-muted-foreground"> · HTF {htf}</span>}
         </h2>
-        <TabsList className="bg-secondary p-0.5">
+        <TabsList className="max-w-full bg-secondary p-0.5">
           <TabsTrigger value="playbook" className="text-xs">Playbook</TabsTrigger>
           <TabsTrigger value="reading" className="text-xs">Analysis</TabsTrigger>
           <TabsTrigger value="indicators" className="text-xs">Indicators</TabsTrigger>
